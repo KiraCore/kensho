@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -23,8 +22,7 @@ type Gui struct {
 	ConnectionStatusBinding binding.Bool
 	ConnectionCount         int
 	Terminal                Terminal
-	LogCtx                  context.Context
-	LogCtxCancel            context.CancelFunc
+	LogScreen               logScreen
 	NodeInfo                nodeInfoScreen
 }
 type Host struct {
@@ -37,7 +35,7 @@ func (g *Gui) MakeGui() fyne.CanvasObject {
 	mainWindow := container.NewStack()
 
 	reconnectButton := widget.NewButton("Reconnect", func() {
-		g.ShowConnect()
+		g.ShowConnect(true)
 	})
 	reconnectButton.Hide()
 	reconnectButton.Importance = widget.DangerImportance
@@ -117,7 +115,7 @@ func (g *Gui) makeNav(setTab func(t Tab)) fyne.CanvasObject {
 			switch uid {
 			case "logs":
 				log.Println("Unselected: ", uid)
-				g.LogCtxCancel()
+				g.LogScreen.ctxCancel()
 			case "nodeInfo":
 				log.Println("Unselected: ", uid)
 				g.NodeInfo.ctxCancel()

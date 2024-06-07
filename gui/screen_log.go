@@ -35,6 +35,11 @@ var (
 	shidaiLogArtifactRemove = regexp.MustCompile(`^.*?interx\[\d+\]:\s*|^.*?\[GIN\]\s*`)
 )
 
+type logScreen struct {
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+}
+
 func makeLogScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 
 	sekaiTab := container.NewTabItem("Sekai",
@@ -50,19 +55,19 @@ func makeLogScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 	tabsMenu := container.NewAppTabs(sekaiTab, interxTab, shidaiTab)
 	tabsMenu.OnUnselected = func(ti *container.TabItem) {
 		log.Println("Unselected:", ti)
-		g.LogCtxCancel()
-		g.LogCtx, g.LogCtxCancel = context.WithCancel(context.Background())
+		g.LogScreen.ctxCancel()
+		g.LogScreen.ctx, g.LogScreen.ctxCancel = context.WithCancel(context.Background())
 	}
 
 	return tabsMenu
 }
 
 func makeLogTab(g *Gui, addressToListen string, logType string) fyne.CanvasObject {
-	g.LogCtx, g.LogCtxCancel = context.WithCancel(context.Background())
+	g.LogScreen.ctx, g.LogScreen.ctxCancel = context.WithCancel(context.Background())
 
 	cancelAndCreateFunc := func() {
 		log.Printf("cancelAndCreateFunc")
-		g.LogCtxCancel()
+		g.LogScreen.ctxCancel()
 
 	}
 
@@ -93,8 +98,8 @@ func makeLogTab(g *Gui, addressToListen string, logType string) fyne.CanvasObjec
 		if state {
 			startStopButton.Text = "Stop"
 			switchData.Set(false)
-			g.LogCtx, g.LogCtxCancel = context.WithCancel(context.Background())
-			go runLogScreenV2(resp, g.LogCtx, logTextLabel, logType)
+			g.LogScreen.ctx, g.LogScreen.ctxCancel = context.WithCancel(context.Background())
+			go runLogScreenV2(resp, g.LogScreen.ctx, logTextLabel, logType)
 		} else {
 			switchData.Set(true)
 			startStopButton.Text = "Start"

@@ -18,7 +18,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func (g *Gui) ShowConnect() {
+func (g *Gui) ShowConnect(reconnect bool) {
 
 	var wizard *dialogWizard.Wizard
 
@@ -245,7 +245,14 @@ func (g *Gui) ShowConnect() {
 
 			submitFunc()
 		})
+		closeButton := widget.NewButton("Close", func() {
+			wizard.Hide()
+		})
+		closeButton.Hide()
 
+		if reconnect {
+			closeButton.Show()
+		}
 		///
 
 		ipEntry.OnSubmitted = func(s string) { submitFunc() }
@@ -262,6 +269,7 @@ func (g *Gui) ShowConnect() {
 				keyEntryBox,
 				privKeyCheck,
 				connectButton,
+				closeButton,
 				testButton,
 			),
 			nil, nil, nil,
@@ -299,6 +307,12 @@ func (g *Gui) sshAliveTracker() {
 		// g.Terminal.Term.Exit()
 		// g.Terminal.SSHSessionForTerminal.Close()
 		// g.Terminal.SSHIn.Close()
+		if g.LogScreen.ctxCancel != nil {
+			g.LogScreen.ctxCancel()
+		}
+		if g.NodeInfo.ctxCancel != nil {
+			g.NodeInfo.ctxCancel()
+		}
 
 		g.showErrorDialog(fmt.Errorf("SSH connection was disconnected, reason: %v", err.Error()), errorDoneBinding)
 	}
