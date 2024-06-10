@@ -119,7 +119,7 @@ func (g *Gui) MakeGui() fyne.CanvasObject {
 		g.Version = "0.0.1"
 	}
 	versionData := binding.NewString()
-	versionData.Set(fmt.Sprintf("Version: v%v", g.Version))
+	versionData.Set(fmt.Sprintf("\tVersion: v%v", g.Version))
 	menuAndTab := container.NewHSplit(container.NewBorder(nil, widget.NewLabelWithData(versionData), nil, nil, g.makeNav(setTab)), tab)
 	menuAndTab.Offset = 0.2
 	return menuAndTab
