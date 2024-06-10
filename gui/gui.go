@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/widget"
+	"github.com/BurntSushi/toml"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -38,6 +40,14 @@ type TxExecBinding struct {
 }
 type Host struct {
 	IP string
+}
+
+type AppDetails struct {
+	Version string `toml:"Version"`
+}
+
+type AppConfig struct {
+	Details AppDetails `toml:"Details"`
 }
 
 func (g *Gui) MakeGui() fyne.CanvasObject {
@@ -102,8 +112,14 @@ func (g *Gui) MakeGui() fyne.CanvasObject {
 		info.SetText(t.Info)
 		mainWindow.Objects = []fyne.CanvasObject{t.View(g.Window, g)}
 	}
+	var err error
+	g.Version, err = parseVersion("./FyneApp.toml")
+	if err != nil {
+		log.Println("Failed to parse version...falling back")
+		g.Version = "0.0.1"
+	}
 	versionData := binding.NewString()
-	versionData.Set(fmt.Sprintf("Version: %v", g.Version))
+	versionData.Set(fmt.Sprintf("Version: v%v", g.Version))
 	menuAndTab := container.NewHSplit(container.NewBorder(nil, widget.NewLabelWithData(versionData), nil, nil, g.makeNav(setTab)), tab)
 	menuAndTab.Offset = 0.2
 	return menuAndTab
@@ -164,4 +180,25 @@ func (g *Gui) makeNav(setTab func(t Tab)) fyne.CanvasObject {
 	}
 
 	return tree
+}
+
+// parseVersion reads the TOML configuration file and extracts the Version field
+func parseVersion(filePath string) (string, error) {
+	var config AppConfig
+
+	// Open the TOML configuration file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	// Decode the TOML file into the AppConfig struct
+
+	if _, err := toml.NewDecoder(file).Decode(&config); err != nil {
+		return "", fmt.Errorf("failed to decode TOML file: %v", err)
+	}
+
+	// Return the version found in the TOML file
+	return config.Details.Version, nil
 }

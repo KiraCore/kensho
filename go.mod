@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	fyne.io/fyne/v2 v2.4.5
+	github.com/BurntSushi/toml v1.3.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/fyne-io/terminal v0.0.0-20240422094903-6a6996b84c7e
