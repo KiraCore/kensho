@@ -70,7 +70,6 @@ func (g *Gui) ShowConnect() {
 			} else {
 				passphraseCheck.SetChecked(false)
 			}
-			log.Println(s)
 		}
 		keyPathEntry.OnChanged = func(s string) {
 			b, err := os.ReadFile(s)
@@ -86,7 +85,6 @@ func (g *Gui) ShowConnect() {
 			} else {
 				passphraseCheck.SetChecked(false)
 			}
-			log.Println(s)
 		}
 
 		fileDialog := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
@@ -216,10 +214,6 @@ func (g *Gui) ShowConnect() {
 				errorLabel.SetText(fmt.Sprintf("ERROR: %s", err.Error()))
 				g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			} else {
-				// err = TryToRunSSHSessionForTerminal(g.sshClient)
-				// if err != nil {
-				// } else {
-
 				err := TryToRunSSHSessionForTerminal(g)
 				if err != nil {
 					g.showErrorDialog(fmt.Errorf("unable to create terminal instance, disabling terminal: %v", err.Error()), binding.NewDataListener(func() {}))
@@ -267,17 +261,6 @@ func (g *Gui) ShowConnect() {
 			nil, nil, nil,
 			container.NewBorder(nil, nil, nil, nil, container.NewVScroll(errorLabel)),
 		)
-		// logging := container.NewVBox(
-		// 	widget.NewLabel("IP and Port"),
-		// 	addressBoxEntry,
-		// 	widget.NewLabel("User"),
-		// 	userEntry,
-		// 	keyEntryBox,
-		// 	privKeyCheck,
-		// 	connectButton,
-		// 	container.NewBorder(nil, nil, nil, nil, container.NewVScroll(errorLabel)),
-		// 	testButton,
-		// )
 		return logging
 	}
 
@@ -296,9 +279,6 @@ func (g *Gui) sshAliveTracker() {
 	if err != nil {
 		log.Printf("SSH was interrupted: %v", err.Error())
 		g.ConnectionStatusBinding.Set(false)
-		// g.Terminal.Term.Exit()
-		// g.Terminal.SSHSessionForTerminal.Close()
-		// g.Terminal.SSHIn.Close()
 
 		g.showErrorDialog(fmt.Errorf("SSH connection was disconnected, reason: %v", err.Error()), errorDoneBinding)
 	}

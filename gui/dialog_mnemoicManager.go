@@ -91,11 +91,7 @@ If you have not please press "Return" and save your mnemonic.`
 	})
 
 	copyButton := widget.NewButtonWithIcon("Copy", theme.FileIcon(), func() {
-		data, err := localMnemonicBinding.Get()
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		data, _ := localMnemonicBinding.Get()
 		err = clipboard.WriteAll(data)
 		if err != nil {
 			log.Println(err)
@@ -115,14 +111,13 @@ If you have not please press "Return" and save your mnemonic.`
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
-
 		err = localMnemonicBinding.Set(masterMnemonic.String())
 		if err != nil {
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
+
 		mnemonicChanged.DataChanged()
-		log.Println(localMnemonicBinding.Get())
 	})
 
 	content = container.NewBorder(

@@ -47,8 +47,6 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 
 	doneMnemonicDataListener := binding.NewDataListener(func() {
 		mnemonicCheck.Set(true)
-		confirmedMnemonic, _ := mnemonicBinding.Get()
-		log.Println("Confirmed mnemonic:", confirmedMnemonic)
 	})
 	mnemonicManagerDialogButton := widget.NewButtonWithIcon("Mnemonic", theme.CancelIcon(), func() {
 		showMnemonicManagerDialog(g, mnemonicBinding, doneMnemonicDataListener)

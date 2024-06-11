@@ -173,7 +173,6 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 	)
 	execFunc := func(args types.ExecSekaiCmd) {
 		g.TxExec.TxExecutionStatusBinding.Set(true)
-		// g.WaitDialog.ShowWaitDialog()
 
 		request := types.RequestTXPayload{Command: "tx", Args: args}
 		payload, err := json.Marshal(request)

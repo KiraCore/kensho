@@ -167,13 +167,17 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		refresh()
 	})
 	defer refresh()
-	return container.NewBorder(nil, refreshButton, nil, nil,
-		container.NewVBox(
-			startButton,
+	return container.NewBorder(nil,
+		container.NewVBox(startButton,
 			deployButton,
+			widget.NewSeparator(),
+			refreshButton), nil, nil,
+		container.NewVBox(
+			widget.NewSeparator(),
 			interxInfoBox,
 			sekaiInfoBox,
 			shidaiInfoBox,
+			widget.NewSeparator(),
 		))
 
 }
