@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -143,7 +142,15 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 			}
 
 			bootstrapFileUrl := types.BOOTSTRAP_SCRIPT
-			filePathToSaveOnRemote := filepath.Join("/home/", g.sshClient.User(), "bootstrap.sh")
+			// filePathToSaveOnRemote := filepath.Join("/home/", g.sshClient.User(), "bootstrap.sh")
+			var filePathToSaveOnRemote string
+			bootstrapFileName := "bootstrap.sh"
+			if g.sshClient.User() == "root" {
+				filePathToSaveOnRemote = fmt.Sprintf("/%v/%v", g.sshClient.User(), bootstrapFileName)
+			} else {
+				filePathToSaveOnRemote = fmt.Sprintf("/home/%v/%v", g.sshClient.User(), bootstrapFileName)
+			}
+
 			log.Println("Bootstrap file save path:", filePathToSaveOnRemote)
 			f, err := httph.MakeHttpRequest(bootstrapFileUrl, "GET")
 			if err != nil {
