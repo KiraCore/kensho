@@ -255,7 +255,7 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 					if validatorControlButton.Hidden {
 						validatorControlButton.Show()
 					}
-					validatorControlButton.SetText("Claim Validator Seat")
+					validatorControlButton.SetText("Claim")
 					validatorControlButton.OnTapped = claimValidatorSeatFunc
 				} else {
 					switch status {
