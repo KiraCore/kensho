@@ -97,17 +97,11 @@ jobs:
 
       - name: Extract and prepare the application binary for AMD64
         run: |
-          mkdir -p build-amd64/usr/bin
-          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz -C build-amd64/usr/bin
-          mv build-amd64/usr/bin/Kensho /build-amd64/usr/bin/kensho
-          chmod +x build-amd64/usr/bin/kensho
+          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz -C build-amd64/
 
       - name: Extract and prepare the application binary for ARM64
         run: |
-          mkdir -p build-arm64/usr/bin
-          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz -C build-arm64/usr/bin
-          mv build-amd64/usr/bin/Kensho /build-arm64/usr/bin/kensho
-          chmod +x build-arm64/usr/bin/kensho
+          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz -C build-arm64/
 
       - name: Build DEB package for AMD64
         run: dpkg-deb --build build-amd64 kensho-amd64.deb
