@@ -95,11 +95,19 @@ jobs:
           echo "Maintainer: KIRA <hello@kira.network>" >> build-arm64/DEBIAN/control
           echo "Description: KENSHO" >> build-arm64/DEBIAN/control
 
-      - name: Copy application to build directory for AMD64
-        run: cp fyne-cross/dist/linux-amd64/Kensho.tar.xz build-amd64/kensho
+      - name: Extract and prepare the application binary for AMD64
+        run: |
+          mkdir -p build-amd64/usr/bin
+          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz build-amd64/usr/bin
+          mv build-amd64/usr/bin/Kensho /build-amd64/usr/bin/kensho
+          chmod +x build-amd64/usr/bin/kensho
 
-      - name: Copy application to build directory for ARM64
-        run: cp fyne-cross/dist/linux-arm64/Kensho.tar.xz build-arm64/kensho
+      - name: Extract and prepare the application binary for ARM64
+        run: |
+          mkdir -p build-arm64/usr/bin
+          tar -xf fyne-cross/dist/linux-amd64/Kensho.tar.xz build-arm64/usr/bin
+          mv build-amd64/usr/bin/Kensho /build-arm64/usr/bin/kensho
+          chmod +x build-arm64/usr/bin/kensho
 
       - name: Build DEB package for AMD64
         run: dpkg-deb --build build-amd64 kensho-amd64.deb
