@@ -37,7 +37,8 @@ type TxExecBinding struct {
 	TxDoneListener           binding.DataListener
 }
 type Host struct {
-	IP string
+	IP           string
+	UserPassword *string
 }
 
 func (g *Gui) MakeGui() fyne.CanvasObject {

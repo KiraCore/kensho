@@ -44,6 +44,29 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 		showSudoEnteringDialog(g, sudoPasswordBinding, sudoCheck)
 	})
 
+	log.Printf("rootState = %v", g.sshClient.User() == "root")
+
+	if g.sshClient.User() == "root" {
+		sudoCheck.Set(true)
+		if !sudoPasswordEntryButton.Hidden {
+			sudoPasswordEntryButton.Hide()
+		}
+	}
+	if g.Host.UserPassword == nil && g.sshClient.User() != "root" {
+		sudoCheck.Set(false)
+		if sudoPasswordEntryButton.Hidden {
+			sudoPasswordEntryButton.Show()
+		}
+		log.Println("Sudo password is nil, assuming we connected with key")
+		} else if g.Host.UserPassword != nil && g.sshClient.User() != "root" {
+			sudoCheck.Set(true)
+			if !sudoPasswordEntryButton.Hidden {
+				sudoPasswordEntryButton.Hide()
+				}
+			log.Println("Sudo password is not nil, applying password from connect dialog")
+		sudoPasswordBinding.Set(*g.Host.UserPassword)
+	}
+
 	doneMnemonicDataListener := binding.NewDataListener(func() {
 		mnemonicCheck.Set(true)
 	})
@@ -143,14 +166,18 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 
 			bootstrapFileUrl := types.BOOTSTRAP_SCRIPT
 			// filePathToSaveOnRemote := filepath.Join("/home/", g.sshClient.User(), "bootstrap.sh")
+			// var cmdForDeploy string:= fmt.Sprintf(`echo '%v' | sudo -S sh -c "%v --sekai=%v --interx=%v 2>&1"`, sP, filePathToSaveOnRemote, sekaiVersion, interxVersion)
 			var filePathToSaveOnRemote string
 			bootstrapFileName := "bootstrap.sh"
+
+			var cmdForDeploy string
 			if g.sshClient.User() == "root" {
 				filePathToSaveOnRemote = fmt.Sprintf("/%v/%v", g.sshClient.User(), bootstrapFileName)
+				cmdForDeploy = fmt.Sprintf(`%v --sekai=%v --interx=%v 2>&1`, filePathToSaveOnRemote, sekaiVersion, interxVersion)
 			} else {
 				filePathToSaveOnRemote = fmt.Sprintf("/home/%v/%v", g.sshClient.User(), bootstrapFileName)
+				cmdForDeploy = fmt.Sprintf(`echo '%v' | sudo -S sh -c "%v --sekai=%v --interx=%v 2>&1"`, sP, filePathToSaveOnRemote, sekaiVersion, interxVersion)
 			}
-
 			log.Println("Bootstrap file save path:", filePathToSaveOnRemote)
 			f, err := httph.MakeHttpRequest(bootstrapFileUrl, "GET")
 			if err != nil {
@@ -174,9 +201,8 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 				return
 			}
 
-			cmdForDeploy := fmt.Sprintf(`echo '%v' | sudo -S sh -c "%v --sekai=%v --interx=%v 2>&1"`, sP, filePathToSaveOnRemote, sekaiVersion, interxVersion)
+			log.Printf("CMD for deploy: <%v>", cmdForDeploy)
 			showCmdExecDialogAndRunCmdV4(g, "Deploying", cmdForDeploy, true, deployErrorBinding, errorMessageBinding)
-
 			errB, _ = deployErrorBinding.Get()
 			if errB {
 				errMsg, _ := errorMessageBinding.Get()
