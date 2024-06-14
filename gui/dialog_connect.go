@@ -223,6 +223,9 @@ func (g *Gui) ShowConnect() {
 				g.Host = &Host{
 					IP: ip,
 				}
+				if !privKeyState {
+					g.Host.UserPassword = &passwordEntry.Text
+				}
 				go g.sshAliveTracker()
 				g.ConnectionStatusBinding.Set(true)
 				wizard.Hide()

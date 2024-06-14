@@ -130,6 +130,8 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		log.Println("enable state: ", deployButtonCheck)
 		if deployButtonCheck {
 			deployButton.Enable()
+		} else {
+			deployButton.Disable()
 		}
 
 		defer g.WaitDialog.HideWaitDialog()
