@@ -234,14 +234,19 @@ func (g *Gui) ShowConnect() {
 		}
 
 		// / test ui block
-		// testButton := widget.NewButton("connect to tested env", func() {
-		// 	ipEntry.Text = "192.168.1.102"
-		// 	userEntry.Text = "d"
-		// 	passwordEntry.Text = "d"
-		// 	passphraseCheck.SetChecked(false)
+		testButton := widget.NewButton("connect to tested env", func() {
+			ipEntry.Text = "192.168.1.101"
+			userEntry.Text = "d"
+			passwordEntry.Text = "d"
+			passphraseCheck.SetChecked(false)
 
-		// 	submitFunc()
-		// })
+			submitFunc()
+		})
+
+		if !g.DeveloperMode {
+			testButton.Disable()
+			testButton.Hide()
+		}
 
 		///
 
@@ -259,7 +264,7 @@ func (g *Gui) ShowConnect() {
 				keyEntryBox,
 				privKeyCheck,
 				connectButton,
-				// testButton,
+				testButton,
 			),
 			nil, nil, nil,
 			container.NewBorder(nil, nil, nil, nil, container.NewVScroll(errorLabel)),

@@ -147,7 +147,7 @@ func ValidateIP(input string) bool {
 }
 
 func ExecHttpRequestBySSHTunnel(sshClient *ssh.Client, address, method string, payload []byte) ([]byte, error) {
-	log.Printf("requesting <%v>\nPayload: %+v", address, payload)
+	log.Printf("requesting <%v>\nPayload: %+v", address, string(payload))
 	dialer := func(network, addr string) (net.Conn, error) {
 		conn, err := sshClient.Dial(network, addr)
 		if err != nil {
