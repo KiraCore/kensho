@@ -29,7 +29,8 @@ type Gui struct {
 	NodeInfo                nodeInfoScreen
 	TxExec                  TxExecBinding
 
-	Version string
+	DeveloperMode bool
+	Version       string
 }
 
 type TxExecBinding struct {
@@ -42,6 +43,8 @@ type Host struct {
 }
 
 func (g *Gui) MakeGui() fyne.CanvasObject {
+	log.Printf("Developer mode: %v\n", g.DeveloperMode)
+
 	title := widget.NewLabel(appName)
 	info := widget.NewLabel("Welcome to  Kensho. Navigate trough panel on the left side")
 	mainWindow := container.NewStack()

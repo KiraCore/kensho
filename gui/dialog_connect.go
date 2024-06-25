@@ -243,6 +243,11 @@ func (g *Gui) ShowConnect() {
 			submitFunc()
 		})
 
+		if !g.DeveloperMode {
+			testButton.Disable()
+			testButton.Hide()
+		}
+
 		///
 
 		ipEntry.OnSubmitted = func(s string) { submitFunc() }
