@@ -15,6 +15,7 @@ import (
 
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
 	"github.com/KiraCore/kensho/helper/gssh"
+	"github.com/KiraCore/kensho/utils"
 	"github.com/atotto/clipboard"
 )
 
@@ -76,7 +77,8 @@ func showInfoDialog(g *Gui, infoTitle, infoString string) {
 	closeButton := widget.NewButton("Close", func() { wizard.Hide() })
 	infoLabel := widget.NewLabel(infoString)
 	infoLabel.Wrapping = 2
-	content := container.NewBorder(nil, closeButton, nil, nil,
+	copyButton := widget.NewButton("Copy", func() { utils.CopyToClipboard(infoLabel.Text) })
+	content := container.NewBorder(nil, container.NewVBox(copyButton, closeButton), nil, nil,
 		container.NewHScroll(
 			container.NewVScroll(
 				infoLabel,

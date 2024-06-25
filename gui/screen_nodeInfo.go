@@ -171,7 +171,7 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 		widget.NewFormItem("Val.NodeID:", nodeIDLabel),
 		widget.NewFormItem("Gen.SHA256:", genesisChecksumLabel),
 	)
-	execFunc := func(args types.ExecSekaiCmd) {
+	execFunc := func(args types.ExecSekaiMaintenanceCommands) {
 		g.TxExec.TxExecutionStatusBinding.Set(true)
 
 		request := types.RequestTXPayload{Command: "tx", Args: args}
@@ -195,7 +195,7 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 	monikerEntryData := binding.NewString()
 	claimDataListener := binding.NewDataListener(func() {
 		moniker, _ := monikerEntryData.Get()
-		execFunc(types.ExecSekaiCmd{TX: types.ClaimValidatorSeat, Moniker: moniker})
+		execFunc(types.ExecSekaiMaintenanceCommands{TX: types.ClaimValidatorSeat, Moniker: moniker})
 	})
 
 	claimValidatorSeatFunc := func() {
@@ -204,15 +204,15 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 	}
 	pauseValidatorFunc := func() {
 		// pause
-		execFunc(types.ExecSekaiCmd{TX: types.Pause})
+		execFunc(types.ExecSekaiMaintenanceCommands{TX: types.Pause})
 	}
 	unpauseValidatorFunc := func() {
 		// unpause tx
-		execFunc(types.ExecSekaiCmd{TX: types.Unpause})
+		execFunc(types.ExecSekaiMaintenanceCommands{TX: types.Unpause})
 	}
 	activateValidatorFunc := func() {
 		// activate
-		execFunc(types.ExecSekaiCmd{TX: types.Activate})
+		execFunc(types.ExecSekaiMaintenanceCommands{TX: types.Activate})
 	}
 
 	errBinding := binding.NewUntyped()
@@ -365,5 +365,8 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 	validatorsTopPart := container.NewHBox(activeValidatorsBox, pausedValidatorsBox, inactiveValidatorsBox, jailedValidatorsBox, waitingValidatorsBox)
 
 	// return container.NewBorder(nil, refreshButton, nil, validatorsRightPart, mainInfo)
-	return container.NewBorder(container.NewCenter(validatorsTopPart), validatorControlButton, nil, nil, mainInfo)
+	executeSekaiCmdButton := widget.NewButton("Execute sekai command", func() {
+		showSekaiExecuteDialog(g)
+	})
+	return container.NewBorder(container.NewCenter(validatorsTopPart), container.NewVBox(validatorControlButton, executeSekaiCmdButton), nil, nil, mainInfo)
 }

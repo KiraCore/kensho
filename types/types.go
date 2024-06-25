@@ -37,10 +37,19 @@ const (
 )
 
 type RequestTXPayload struct {
-	Command string       `json:"command"`
-	Args    ExecSekaiCmd `json:"args"`
+	Command string                       `json:"command"`
+	Args    ExecSekaiMaintenanceCommands `json:"args"`
 }
-type ExecSekaiCmd struct {
+type ExecSekaiMaintenanceCommands struct {
 	TX      Cmd    `json:"tx"` //pause, unpause, activate,
 	Moniker string `json:"moniker"`
+}
+
+type ExecSekaiCommands struct {
+	Command  string   `json:"command"`
+	ExecArgs ExecArgs `json:"args"`
+}
+
+type ExecArgs struct {
+	Exec []string `json:"exec"`
 }
