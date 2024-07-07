@@ -58,12 +58,12 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 			sudoPasswordEntryButton.Show()
 		}
 		log.Println("Sudo password is nil, assuming we connected with key")
-		} else if g.Host.UserPassword != nil && g.sshClient.User() != "root" {
-			sudoCheck.Set(true)
-			if !sudoPasswordEntryButton.Hidden {
-				sudoPasswordEntryButton.Hide()
-				}
-			log.Println("Sudo password is not nil, applying password from connect dialog")
+	} else if g.Host.UserPassword != nil && g.sshClient.User() != "root" {
+		sudoCheck.Set(true)
+		if !sudoPasswordEntryButton.Hidden {
+			sudoPasswordEntryButton.Hide()
+		}
+		log.Println("Sudo password is not nil, applying password from connect dialog")
 		sudoPasswordBinding.Set(*g.Host.UserPassword)
 	}
 
@@ -154,14 +154,24 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
-
+		lCheck, _ := localCheckBinding.Get()
 		sP, _ := sudoPasswordBinding.Get()
 		sInfra, _ := shidaiInfra.Get()
 		if !sInfra {
-			sekaiVersion, interxVersion, err := httph.GetBinariesVersionsFromTrustedNode(payload.Args.IP, strconv.Itoa(payload.Args.RPCPort), strconv.Itoa(payload.Args.InterxPort))
-			if err != nil {
-				g.showErrorDialog(err, binding.NewDataListener(func() {}))
-				return
+			var sekaiVersion, interxVersion string
+			var err error
+			if !lCheck {
+				sekaiVersion, interxVersion, err = httph.GetBinariesVersionsFromTrustedNode(payload.Args.IP, strconv.Itoa(payload.Args.RPCPort), strconv.Itoa(payload.Args.InterxPort))
+				if err != nil {
+					g.showErrorDialog(err, binding.NewDataListener(func() {}))
+					return
+				}
+			} else {
+				sekaiVersion, interxVersion, err = httph.GetBinariesVersionsFromTrustedLocalNode(g.sshClient, payload.Args.IP, strconv.Itoa(payload.Args.RPCPort), strconv.Itoa(payload.Args.InterxPort))
+				if err != nil {
+					g.showErrorDialog(err, binding.NewDataListener(func() {}))
+					return
+				}
 			}
 
 			bootstrapFileUrl := types.BOOTSTRAP_SCRIPT

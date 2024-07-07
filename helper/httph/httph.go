@@ -96,6 +96,34 @@ func GetSekaiABCI_Info(nodeIP, port string) (*sekaiendpoint.ABCI_Info, error) {
 	return &data, nil
 }
 
+func GetSekaiABCI_Info_SSH_Tunnel(sshClient *ssh.Client, nodeIP, port string) (*sekaiendpoint.ABCI_Info, error) {
+	url := fmt.Sprintf("http://%v:%v/abci_info", nodeIP, port)
+	b, err := ExecHttpRequestBySSHTunnel(sshClient, url, "GET", nil)
+	if err != nil {
+		return nil, err
+	}
+	var data sekaiendpoint.ABCI_Info
+	err = json.Unmarshal(b, &data)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func GetInterxStatus_SSH_Tunnel(sshClient *ssh.Client, nodeIP, interxPort string) (*interxendpoint.Status, error) {
+	url := fmt.Sprintf("http://%v:%v/api/status", nodeIP, interxPort)
+	b, err := ExecHttpRequestBySSHTunnel(sshClient, url, "GET", nil)
+	if err != nil {
+		return nil, err
+	}
+	var info *interxendpoint.Status
+	err = json.Unmarshal(b, &info)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
 func GetBinariesVersionsFromTrustedNode(trustedIP, sekaiRPC_Port, interxPort string) (sekaiVersion, interxVersion string, err error) {
 	log.Printf("Getting sekai and interx version from <%v>", trustedIP)
 	abci, err := GetSekaiABCI_Info(trustedIP, sekaiRPC_Port)
@@ -105,6 +133,23 @@ func GetBinariesVersionsFromTrustedNode(trustedIP, sekaiRPC_Port, interxPort str
 	sekaiVersion = abci.ABCI_result.Response.Version
 
 	interxStatus, err := GetInterxStatus(trustedIP, interxPort)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting interx status: %w", err)
+	}
+	interxVersion = interxStatus.InterxInfo.Version
+	log.Printf("Sekai version: <%v>  Interx version: <%v>", sekaiVersion, interxVersion)
+	return sekaiVersion, interxVersion, nil
+}
+
+func GetBinariesVersionsFromTrustedLocalNode(sshClient *ssh.Client, trustedIP, sekaiRPC_Port, interxPort string) (sekaiVersion, interxVersion string, err error) {
+	log.Printf("Getting sekai and interx version from local <%v>", trustedIP)
+	abci, err := GetSekaiABCI_Info_SSH_Tunnel(sshClient, trustedIP, sekaiRPC_Port)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting abci info from sekai: %w", err)
+	}
+	sekaiVersion = abci.ABCI_result.Response.Version
+
+	interxStatus, err := GetInterxStatus_SSH_Tunnel(sshClient, trustedIP, interxPort)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting interx status: %w", err)
 	}
