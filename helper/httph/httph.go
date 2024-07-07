@@ -2,6 +2,7 @@ package httph
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
 	interxendpoint "github.com/KiraCore/kensho/types/endpoint/interx"
 	sekaiendpoint "github.com/KiraCore/kensho/types/endpoint/sekai"
@@ -16,9 +18,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func MakeHttpRequest(url, method string) ([]byte, error) {
+func MakeHttpRequest(ctx context.Context, url, method string) ([]byte, error) {
 	client := http.DefaultClient
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +30,12 @@ func MakeHttpRequest(url, method string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Non-2xx response received: %d %s", resp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("HTTP request failed with status code %d: %s", resp.StatusCode, string(bodyBytes))
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -39,7 +47,9 @@ func MakeHttpRequest(url, method string) ([]byte, error) {
 
 func GetInterxStatus(nodeIP, interxPort string) (*interxendpoint.Status, error) {
 	url := fmt.Sprintf("http://%v:%v/api/status", nodeIP, interxPort)
-	b, err := MakeHttpRequest(url, "GET")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	b, err := MakeHttpRequest(ctx, url, "GET")
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +63,9 @@ func GetInterxStatus(nodeIP, interxPort string) (*interxendpoint.Status, error) 
 
 func GetSekaiStatus(nodeIP, port string) (*sekaiendpoint.Status, error) {
 	url := fmt.Sprintf("http://%v:%v/status", nodeIP, port)
-	b, err := MakeHttpRequest(url, "GET")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	b, err := MakeHttpRequest(ctx, url, "GET")
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +82,9 @@ func GetShidaiStatus(sshClient *ssh.Client, shidaiPort int) (shidaiendpoint.Stat
 	if !valid {
 		return shidaiendpoint.Status{}, fmt.Errorf("<%v> is not valid", shidaiPort)
 	}
-	o, err := ExecHttpRequestBySSHTunnel(sshClient, fmt.Sprintf("http://localhost:%v/status", shidaiPort), "GET", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	o, err := ExecHttpRequestBySSHTunnel(ctx, sshClient, fmt.Sprintf("http://localhost:%v/status", shidaiPort), "GET", nil)
 	if err != nil {
 		return shidaiendpoint.Status{}, err
 	}
@@ -84,7 +98,9 @@ func GetShidaiStatus(sshClient *ssh.Client, shidaiPort int) (shidaiendpoint.Stat
 
 func GetSekaiABCI_Info(nodeIP, port string) (*sekaiendpoint.ABCI_Info, error) {
 	url := fmt.Sprintf("http://%v:%v/abci_info", nodeIP, port)
-	b, err := MakeHttpRequest(url, "GET")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	b, err := MakeHttpRequest(ctx, url, "GET")
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +114,9 @@ func GetSekaiABCI_Info(nodeIP, port string) (*sekaiendpoint.ABCI_Info, error) {
 
 func GetSekaiABCI_Info_SSH_Tunnel(sshClient *ssh.Client, nodeIP, port string) (*sekaiendpoint.ABCI_Info, error) {
 	url := fmt.Sprintf("http://%v:%v/abci_info", nodeIP, port)
-	b, err := ExecHttpRequestBySSHTunnel(sshClient, url, "GET", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	b, err := ExecHttpRequestBySSHTunnel(ctx, sshClient, url, "GET", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +130,9 @@ func GetSekaiABCI_Info_SSH_Tunnel(sshClient *ssh.Client, nodeIP, port string) (*
 
 func GetInterxStatus_SSH_Tunnel(sshClient *ssh.Client, nodeIP, interxPort string) (*interxendpoint.Status, error) {
 	url := fmt.Sprintf("http://%v:%v/api/status", nodeIP, interxPort)
-	b, err := ExecHttpRequestBySSHTunnel(sshClient, url, "GET", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	b, err := ExecHttpRequestBySSHTunnel(ctx, sshClient, url, "GET", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +146,7 @@ func GetInterxStatus_SSH_Tunnel(sshClient *ssh.Client, nodeIP, interxPort string
 
 func GetBinariesVersionsFromTrustedNode(trustedIP, sekaiRPC_Port, interxPort string) (sekaiVersion, interxVersion string, err error) {
 	log.Printf("Getting sekai and interx version from <%v>", trustedIP)
+
 	abci, err := GetSekaiABCI_Info(trustedIP, sekaiRPC_Port)
 	if err != nil {
 		return "", "", fmt.Errorf("error getting abci info from sekai: %w", err)
@@ -159,11 +180,13 @@ func GetBinariesVersionsFromTrustedLocalNode(sshClient *ssh.Client, trustedIP, s
 }
 
 func GetValidatorStatus(sshClient *ssh.Client, shidaiPort int) (*shidaiendpoint.Validator, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	valid := ValidatePortRange(strconv.Itoa(shidaiPort))
 	if !valid {
 		return nil, fmt.Errorf("<%v> is not valid", shidaiPort)
 	}
-	o, err := ExecHttpRequestBySSHTunnel(sshClient, fmt.Sprintf("http://localhost:%v/validator", shidaiPort), "GET", nil)
+	o, err := ExecHttpRequestBySSHTunnel(ctx, sshClient, fmt.Sprintf("http://localhost:%v/validator", shidaiPort), "GET", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +214,7 @@ func ValidateIP(input string) bool {
 	return ipCheck != nil
 }
 
-func ExecHttpRequestBySSHTunnel(sshClient *ssh.Client, address, method string, payload []byte) ([]byte, error) {
+func ExecHttpRequestBySSHTunnel(ctx context.Context, sshClient *ssh.Client, address, method string, payload []byte) ([]byte, error) {
 	log.Printf("requesting <%v>\nPayload: %+v", address, string(payload))
 	dialer := func(network, addr string) (net.Conn, error) {
 		conn, err := sshClient.Dial(network, addr)
@@ -213,9 +236,9 @@ func ExecHttpRequestBySSHTunnel(sshClient *ssh.Client, address, method string, p
 	var err error
 
 	if len(payload) == 0 {
-		req, err = http.NewRequest(method, address, nil)
+		req, err = http.NewRequestWithContext(ctx, method, address, nil)
 	} else {
-		req, err = http.NewRequest(method, address, bytes.NewBuffer(payload))
+		req, err = http.NewRequestWithContext(ctx, method, address, bytes.NewBuffer(payload))
 	}
 	if err != nil {
 		log.Printf("Failed to create HTTP request: %v", err)
@@ -308,7 +331,9 @@ type Dashboard struct {
 
 func GetDashboardInfo(sshClient *ssh.Client, shidaiPort int) (*Dashboard, error) {
 	url := fmt.Sprintf("http://localhost:%v/dashboard", shidaiPort)
-	o, err := ExecHttpRequestBySSHTunnel(sshClient, url, "GET", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	o, err := ExecHttpRequestBySSHTunnel(ctx, sshClient, url, "GET", nil)
 	if err != nil {
 		return nil, fmt.Errorf("ERROR getting request from <%v>, reason: %w", url, err)
 	}

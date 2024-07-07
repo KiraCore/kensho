@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -43,8 +44,8 @@ func showSekaiExecuteDialog(g *Gui) {
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
-
-		o, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
+		ctx := context.Background()
+		o, err := httph.ExecHttpRequestBySSHTunnel(ctx, g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
 		if err != nil {
 			log.Printf("error when executing cmdStruct: %v", err.Error())
 			g.WaitDialog.HideWaitDialog()

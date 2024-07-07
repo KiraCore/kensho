@@ -181,7 +181,7 @@ func makeNodeInfoTab(g *Gui) fyne.CanvasObject {
 		if err != nil {
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 		}
-		out, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
+		out, err := httph.ExecHttpRequestBySSHTunnel(ctx, g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
 		if err != nil {
 			log.Println("ERROR when executing payload:", err.Error())
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))

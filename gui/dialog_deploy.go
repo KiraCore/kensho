@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -147,7 +148,7 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 
 	deployErrorBinding := binding.NewBool()
 	errorMessageBinding := binding.NewString()
-
+	ctx := context.Background()
 	deployButton := widget.NewButton("Deploy", func() {
 		payload, err := constructJoinCmd()
 		if err != nil {
@@ -189,7 +190,7 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 				cmdForDeploy = fmt.Sprintf(`echo '%v' | sudo -S sh -c "%v --sekai=%v --interx=%v 2>&1"`, sP, filePathToSaveOnRemote, sekaiVersion, interxVersion)
 			}
 			log.Println("Bootstrap file save path:", filePathToSaveOnRemote)
-			f, err := httph.MakeHttpRequest(bootstrapFileUrl, "GET")
+			f, err := httph.MakeHttpRequest(ctx, bootstrapFileUrl, "GET")
 			if err != nil {
 				log.Println(err.Error())
 				g.showErrorDialog(fmt.Errorf("error when downloading bootstrap script: %v ", err.Error()), binding.NewDataListener(func() {}))
@@ -230,7 +231,7 @@ func showDeployDialog(g *Gui, doneListener binding.DataListener, shidaiInfra bin
 		}
 
 		log.Printf("Executing http payload for join: %+v", payload)
-		out, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", jsonPayload)
+		out, err := httph.ExecHttpRequestBySSHTunnel(ctx, g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", jsonPayload)
 		log.Printf("ERROR:\n %v\nerr: %v", string(out), err)
 		g.WaitDialog.HideWaitDialog()
 

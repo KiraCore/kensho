@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -147,7 +148,8 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
-		out, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
+		ctx := context.Background()
+		out, err := httph.ExecHttpRequestBySSHTunnel(ctx, g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
 		if err != nil {
 			log.Println("ERROR when executing payload:", err.Error())
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
