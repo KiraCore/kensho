@@ -255,6 +255,14 @@ func (g *Gui) ShowConnect() {
 		passwordEntry.OnSubmitted = func(s string) { submitFunc() }
 		connectButton := widget.NewButton("Connect to remote host", func() { submitFunc() })
 
+		closeButton := widget.NewButton("Close", func() { wizard.Hide() })
+
+		if g.ConnectionCount > 0 {
+			closeButton.Show()
+		} else {
+			closeButton.Hide()
+		}
+
 		logging := container.NewBorder(
 			container.NewVBox(
 				widget.NewLabel("IP and Port"),
@@ -264,6 +272,7 @@ func (g *Gui) ShowConnect() {
 				keyEntryBox,
 				privKeyCheck,
 				connectButton,
+				closeButton,
 				testButton,
 			),
 			nil, nil, nil,
