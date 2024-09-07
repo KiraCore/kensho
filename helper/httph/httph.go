@@ -285,7 +285,7 @@ const (
 	appTomlType    = "app_toml"
 )
 
-// post
+// returns app.toml as string from remote host
 func GetAppTomlConfig(sshClient *ssh.Client, shidaiPort int) (string, error) {
 	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
 	payload := ConfigRequest{
@@ -302,6 +302,8 @@ func GetAppTomlConfig(sshClient *ssh.Client, shidaiPort int) (string, error) {
 	}
 	return string(out), nil
 }
+
+// returns config.toml as string from remote host
 func GetConfigTomlConfig(sshClient *ssh.Client, shidaiPort int) (string, error) {
 	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
 	payload := ConfigRequest{
