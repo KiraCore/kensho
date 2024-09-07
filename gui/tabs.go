@@ -32,11 +32,15 @@ var (
 			Title: "Logs",
 			View:  makeLogScreen,
 		},
+		"config": {
+			Title: "Configs",
+			View:  makeCfgEditorScreen,
+		},
 		"test": {},
 	}
 
 	TabsIndex = map[string][]string{
-		"":     {"status", "nodeInfo", "networkTree", "terminal", "logs"},
+		"":     {"status", "nodeInfo", "networkTree", "config", "terminal", "logs"},
 		"test": {"a", "b"},
 	}
 )
