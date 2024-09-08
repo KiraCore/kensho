@@ -72,7 +72,7 @@ func makeAppTomlTab(g *Gui) fyne.CanvasObject {
 	saveButton.OnTapped = saveFunc
 
 	buttonsContainer := container.NewVBox(
-		container.NewHBox(editButton, saveButton),
+		container.NewGridWithColumns(2, editButton, saveButton),
 		refreshButton,
 	)
 	refreshFunc()
@@ -135,7 +135,7 @@ func makeConfigTomlTab(g *Gui) fyne.CanvasObject {
 	saveButton.OnTapped = saveFunc
 
 	buttonsContainer := container.NewVBox(
-		container.NewHBox(editButton, saveButton),
+		container.NewGridWithColumns(2, editButton, saveButton),
 		refreshButton,
 	)
 	refreshFunc()
