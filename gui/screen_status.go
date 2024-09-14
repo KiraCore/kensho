@@ -117,6 +117,8 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		} else {
 			deployButtonCheck = false
 		}
+
+		log.Println("enable state: ", deployButtonCheck)
 		if !deployButtonCheck {
 			if shidaiInfra && sekaiInfra && interxInfra && (shidaiCheck && !sekaiCheck && !interxCheck) {
 				startButton.Enable()
@@ -126,15 +128,11 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 				log.Println("stop button enabled")
 			} else {
 				startButton.Disable()
+				stopButton.Disable()
 				log.Println("start button disabled")
 			}
-		}
-
-		log.Println("enable state: ", deployButtonCheck)
-		if deployButtonCheck {
-			deployButton.Enable()
 		} else {
-			deployButton.Disable()
+			deployButton.Enable()
 		}
 
 		defer g.WaitDialog.HideWaitDialog()
