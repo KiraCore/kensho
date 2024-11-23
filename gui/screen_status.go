@@ -93,6 +93,35 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		}
 	}
 	startButton := widget.NewButton("Start", func() {})
+
+	// TODO: delete after upgrade module for chaosnet-2 migration
+	upgradeCheck := binding.NewBool()
+	checkUpgradeStatus := func() {
+		check, err := checkUpgradeStatus()
+		if err != nil {
+			log.Printf("error when checking for chaosnet-2 migration %v", err.Error())
+		}
+		if check {
+			upgradeCheck.Set(true)
+		}
+
+	}
+	upgradeButton := widget.NewButton("Upgrade", func() {})
+	upgradeFunc := func() {
+		err := upgradeNode()
+		if err != nil {
+			g.showErrorDialog(err, binding.NewDataListener(func() {}))
+		} else {
+			upgradeButton.Hide()
+			upgradeButton.Disable()
+		}
+
+	}
+	upgradeButton.OnTapped = upgradeFunc
+	upgradeButton.Hide()
+	upgradeButton.Disable()
+	// /migration module end
+
 	refresh := func() {
 		g.WaitDialog.ShowWaitDialog()
 		checkInterxStatus()
@@ -134,6 +163,14 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 			deployButton.Disable()
 		}
 
+		// TODO: migration check - delete after
+		checkUpgradeStatus()
+		migrationCheck, _ := upgradeCheck.Get()
+		if migrationCheck {
+			upgradeButton.Show()
+			upgradeButton.Enable()
+		}
+
 		defer g.WaitDialog.HideWaitDialog()
 	}
 	startButton.OnTapped = func() {
@@ -169,6 +206,7 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		refresh()
 	})
 	defer refresh()
+
 	return container.NewBorder(nil,
 		container.NewVBox(startButton,
 			deployButton,
@@ -182,4 +220,17 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 			widget.NewSeparator(),
 		))
 
+}
+
+// TODO: delete after upgrade
+
+// func to check if the node need to be prepared for chaosnet-2 migration
+func checkUpgradeStatus() (bool, error) {
+	// TODO: idea - check if specific file exist on the system with upgrade notes
+	return false, nil
+}
+
+// func to perform preparation for chaosnet-2 migration
+func upgradeNode() error {
+	return nil
 }
