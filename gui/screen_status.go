@@ -120,9 +120,11 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		if !deployButtonCheck {
 			if shidaiInfra && sekaiInfra && interxInfra && (shidaiCheck && !sekaiCheck && !interxCheck) {
 				startButton.Enable()
+				stopButton.Disable()
 				log.Println("start button enabled")
 			} else if shidaiInfra && sekaiInfra && interxInfra && (shidaiCheck && sekaiCheck && interxCheck) {
 				stopButton.Enable()
+				startButton.Disable()
 				log.Println("stop button enabled")
 			} else {
 				startButton.Disable()
