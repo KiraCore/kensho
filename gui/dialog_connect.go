@@ -1,9 +1,16 @@
 package gui
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -15,8 +22,13 @@ import (
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
 	"github.com/KiraCore/kensho/helper/gssh"
 	"github.com/fyne-io/terminal"
+	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/ssh"
 )
+
+const service = "Kensho"
+const username = "KenshoEncryptionKey"
+const fallbackKeyFile = "encryption_key.txt"
 
 func (g *Gui) ShowConnect() {
 
@@ -24,6 +36,26 @@ func (g *Gui) ShowConnect() {
 
 	//join to new host tab
 	join := func() *fyne.Container {
+		encryptionKey, err := getEncryptionKey()
+		if err != nil {
+			fmt.Println("Error getting encryption key:", err)
+			return nil
+		}
+
+		savedIp := g.Preferences.String("ip")
+		savedPort := g.Preferences.String("port")
+		savedUsername := g.Preferences.String("username")
+		savedPkCheckbox := g.Preferences.Bool("pkc")
+		savedPkPath := g.Preferences.String("pkpath")
+		savedSaveCheckbox := g.Preferences.Bool("svc")
+
+		encryptedPassword := g.Preferences.String("password")
+
+		var savedPassword string
+		if encryptedPassword != "" {
+			savedPassword, _ = decrypt(encryptedPassword, encryptionKey)
+		}
+
 		userEntry := widget.NewEntry()
 		ipEntry := widget.NewEntry()
 		portEntry := widget.NewEntry()
@@ -36,7 +68,16 @@ func (g *Gui) ShowConnect() {
 		var privKeyState bool
 		var passphraseState bool
 		var rawKeyState bool
+		var saveState bool
+
+		userEntry.SetText(savedUsername)
+		ipEntry.SetText(savedIp)
+		portEntry.SetText(savedPort)
 		portEntry.PlaceHolder = "22"
+		passwordEntry.SetText(savedPassword)
+		keyPathEntry.SetText(savedPkPath)
+
+		passphraseEntry.SetText(savedPassword)
 		passphraseEntry.Validator = func(s string) error {
 			if s == "" {
 				return fmt.Errorf("enter your passphrase")
@@ -138,6 +179,14 @@ func (g *Gui) ShowConnect() {
 			}
 		})
 
+		privKeyCheck.SetChecked(savedPkCheckbox)
+
+		saveCheck := widget.NewCheck("Remember credentials", func(b bool) {
+			saveState = b
+		})
+
+		saveCheck.SetChecked(savedSaveCheckbox)
+
 		rawKeyCheck.OnChanged = func(b bool) {
 			rawKeyState = b
 			if b {
@@ -160,6 +209,25 @@ func (g *Gui) ShowConnect() {
 				port = strings.TrimSpace(portEntry.Text)
 			}
 			address := fmt.Sprintf("%v:%v", ip, (port))
+
+			if saveState {
+				encryptedPassword, _ := encrypt(passwordEntry.Text, encryptionKey)
+				g.Preferences.SetString("ip", ipEntry.Text)
+				g.Preferences.SetString("port", portEntry.Text)
+				g.Preferences.SetString("username", userEntry.Text)
+				g.Preferences.SetString("password", encryptedPassword)
+				g.Preferences.SetBool("pkc", privKeyState)
+				g.Preferences.SetString("pkpath", keyPathEntry.Text)
+				g.Preferences.SetBool("svc", saveState)
+			} else {
+				g.Preferences.SetString("ip", "")
+				g.Preferences.SetString("port", "")
+				g.Preferences.SetString("username", "")
+				g.Preferences.SetString("password", "")
+				g.Preferences.SetBool("pkc", false)
+				g.Preferences.SetString("pkpath", "")
+				g.Preferences.SetBool("svc", saveState)
+			}
 
 			if privKeyState {
 				var b []byte
@@ -263,6 +331,7 @@ func (g *Gui) ShowConnect() {
 				userEntry,
 				keyEntryBox,
 				privKeyCheck,
+				saveCheck,
 				connectButton,
 				testButton,
 			),
@@ -291,4 +360,77 @@ func (g *Gui) sshAliveTracker() {
 		g.showErrorDialog(fmt.Errorf("SSH connection was disconnected, reason: %v", err.Error()), errorDoneBinding)
 	}
 
+}
+
+func getEncryptionKey() ([]byte, error) {
+	key, err := keyring.Get(service, username)
+	if err == keyring.ErrNotFound {
+		fmt.Println("Key not found in system keyring. Falling back to file storage.")
+		return getEncryptionKeyFromFile()
+	} else if err != nil {
+		fmt.Println("Keyring error. Falling back to file storage.")
+		return getEncryptionKeyFromFile()
+	}
+
+	return base64.StdEncoding.DecodeString(key)
+}
+
+func getEncryptionKeyFromFile() ([]byte, error) {
+	keyPath := filepath.Join(os.TempDir(), fallbackKeyFile)
+
+	if _, err := os.Stat(keyPath); errors.Is(err, os.ErrNotExist) {
+		newKey := make([]byte, 32)
+		_, err := rand.Read(newKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate encryption key: %v", err)
+		}
+
+		encodedKey := base64.StdEncoding.EncodeToString(newKey)
+		if err := os.WriteFile(keyPath, []byte(encodedKey), 0600); err != nil {
+			return nil, fmt.Errorf("failed to write key to file: %v", err)
+		}
+		return newKey, nil
+	}
+
+	data, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key from file: %v", err)
+	}
+
+	return base64.StdEncoding.DecodeString(string(data))
+}
+
+func decrypt(encryptedText string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return "", err
+	}
+	if len(ciphertext) < aes.BlockSize {
+		return "", errors.New("ciphertext too short")
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+	stream := cipher.NewCFBDecrypter(block, iv)
+	stream.XORKeyStream(ciphertext, ciphertext)
+	return string(ciphertext), nil
+}
+
+func encrypt(text string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	plaintext := []byte(text)
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }

@@ -28,6 +28,7 @@ type Gui struct {
 	LogCtxCancel            context.CancelFunc
 	NodeInfo                nodeInfoScreen
 	TxExec                  TxExecBinding
+	Preferences             fyne.Preferences
 
 	DeveloperMode bool
 	Version       string
