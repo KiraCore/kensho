@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
@@ -120,9 +121,13 @@ If you have not please press "Return" and save your mnemonic.`
 		mnemonicChanged.DataChanged()
 	})
 
+	showDetailsButton := widget.NewButton("Show Details", func() {
+		showMasterMnemonicDetails(g, localMnemonicBinding)
+	})
+
 	content = container.NewBorder(
 		nil,
-		container.NewVBox(enterMnemonicManuallyButton, container.NewVBox(container.NewGridWithColumns(2, generateButton, copyButton)), closeButton, doneButton),
+		container.NewVBox(enterMnemonicManuallyButton, container.NewVBox(container.NewGridWithColumns(2, generateButton, copyButton)), showDetailsButton, closeButton, doneButton),
 		nil,
 		nil,
 		mnemonicDisplay,
@@ -168,6 +173,25 @@ func showMnemonicEntryDialog(g *Gui, mnemonicBinding binding.String, doneAction 
 		nil,
 		nil,
 		(mnemonicEntry),
+	)
+
+	wizard = dialogWizard.NewWizard("Mnemonic setup", content)
+	wizard.Show(g.Window)
+	wizard.Resize(fyne.NewSize(900, 200))
+}
+
+func showMasterMnemonicDetails(g *Gui, mnemonicBinding binding.String) {
+	var wizard *dialogWizard.Wizard
+
+	closeButton := widget.NewButton("Close", func() {
+		wizard.Hide()
+	})
+	content := container.NewBorder(
+		nil,
+		container.NewGridWithColumns(3, layout.NewSpacer(), closeButton, layout.NewSpacer()),
+		nil,
+		nil,
+		nil,
 	)
 
 	wizard = dialogWizard.NewWizard("Mnemonic setup", content)
