@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
 	mnemonicHelper "github.com/KiraCore/kensho/helper/mnemonicHelper"
+	vlg "github.com/KiraCore/tools/validator-key-gen/MnemonicsGenerator"
 
 	"github.com/atotto/clipboard"
 )
@@ -43,6 +44,10 @@ If you have not please press "Return" and save your mnemonic.`
 	doneButton.Disable()
 	var content *fyne.Container
 
+	showDetailsButton := widget.NewButton("Show Details", func() {
+		showMasterMnemonicDetails(g, localMnemonicBinding)
+	})
+	showDetailsButton.Disable()
 	// doing this to display mnemonic if it was already generated
 	m, err := mnemonicBinding.Get()
 	if err != nil {
@@ -71,6 +76,7 @@ If you have not please press "Return" and save your mnemonic.`
 			return
 		}
 		doneButton.Enable()
+		showDetailsButton.Enable()
 		mnemonicWords := strings.Split(m, " ")
 		mnemonicDisplay.RemoveAll()
 		for i, w := range mnemonicWords {
@@ -119,10 +125,6 @@ If you have not please press "Return" and save your mnemonic.`
 		}
 
 		mnemonicChanged.DataChanged()
-	})
-
-	showDetailsButton := widget.NewButton("Show Details", func() {
-		showMasterMnemonicDetails(g, localMnemonicBinding)
 	})
 
 	content = container.NewBorder(
@@ -186,15 +188,42 @@ func showMasterMnemonicDetails(g *Gui, mnemonicBinding binding.String) {
 	closeButton := widget.NewButton("Close", func() {
 		wizard.Hide()
 	})
-	content := container.NewBorder(
-		nil,
-		container.NewGridWithColumns(3, layout.NewSpacer(), closeButton, layout.NewSpacer()),
-		nil,
-		nil,
-		nil,
+
+	mstrMnmc, _ := mnemonicBinding.Get()
+	mnemonicSet, err := vlg.MasterKeysGen([]byte(mstrMnmc), vlg.DefaultPrefix, vlg.DefaultPath, "")
+	if err != nil {
+		g.showErrorDialog(err, binding.NewDataListener(func() {}))
+	}
+	mnemonicsData := binding.NewString()
+	kiraAddress, err := mnemonicHelper.GetKiraAddressFromMnemonic(mnemonicSet.ValidatorAddrMnemonic)
+	if err != nil {
+		g.showErrorDialog(err, binding.NewDataListener(func() {}))
+	}
+	mnemonicsData.Set(fmt.Sprintf("VALIDATOR_ADDR_MNEMONIC=%s\n\nVALIDATOR_NODE_MNEMONIC=%s\n\nVALIDATOR_VAL_MNEMONIC=%s\n\nSIGNER_ADDR_MNEMONIC=%s\n\n\nVALIDATOR_ADDRESS=%s\nVALIDATOR_NODE_ID=%s", string(mnemonicSet.ValidatorAddrMnemonic), string(mnemonicSet.ValidatorNodeMnemonic), string(mnemonicSet.ValidatorValMnemonic), string(mnemonicSet.SignerAddrMnemonic), kiraAddress, mnemonicSet.ValidatorNodeId))
+
+	copyButton := widget.NewButtonWithIcon("Copy", theme.FileIcon(), func() {
+		data, _ := mnemonicsData.Get()
+		err = clipboard.WriteAll(data)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	})
+	infoLabel := widget.NewLabelWithData(mnemonicsData)
+	infoLabel.Wrapping = fyne.TextWrapWord
+	infoContent := container.NewVScroll(
+		infoLabel,
 	)
 
-	wizard = dialogWizard.NewWizard("Mnemonic setup", content)
+	content := container.NewBorder(
+		nil,
+		container.NewGridWithColumns(3, copyButton, layout.NewSpacer(), closeButton),
+		nil,
+		nil,
+		infoContent,
+	)
+
+	wizard = dialogWizard.NewWizard("Mnemonic details", content)
 	wizard.Show(g.Window)
-	wizard.Resize(fyne.NewSize(900, 200))
+	wizard.Resize(fyne.NewSize(900, 400))
 }

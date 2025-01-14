@@ -25,3 +25,8 @@ func ValidateMnemonic(mnemonic string) error {
 	}
 	return nil
 }
+
+func GetKiraAddressFromMnemonic(mnemonic []byte) (string, error) {
+
+	return "someAddress", nil
+}
