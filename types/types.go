@@ -4,6 +4,7 @@ const (
 	BOOTSTRAP_SCRIPT       string = "https://raw.githubusercontent.com/KiraCore/sekin/main/scripts/bootstrap.sh"
 	SEKIN_EXECUTE_ENDPOINT string = "http://localhost:8282/api/execute"
 	SEKIN_STATUS_ENDPOINT  string = "http://localhost:8282/api/status"
+	KIRA_ADDRESS_PREFIX    string = "kira"
 
 	DEFAULT_INTERX_PORT int = 11000
 	DEFAULT_P2P_PORT    int = 26656
