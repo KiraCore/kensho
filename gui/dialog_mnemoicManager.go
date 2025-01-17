@@ -199,7 +199,7 @@ func showMasterMnemonicDetails(g *Gui, mnemonicBinding binding.String) {
 	if err != nil {
 		g.showErrorDialog(err, binding.NewDataListener(func() {}))
 	}
-	mnemonicsData.Set(fmt.Sprintf("VALIDATOR_ADDR_MNEMONIC=%s\n\nVALIDATOR_NODE_MNEMONIC=%s\n\nVALIDATOR_VAL_MNEMONIC=%s\n\nSIGNER_ADDR_MNEMONIC=%s\n\n\nVALIDATOR_ADDRESS=%s\nVALIDATOR_NODE_ID=%s", string(mnemonicSet.ValidatorAddrMnemonic), string(mnemonicSet.ValidatorNodeMnemonic), string(mnemonicSet.ValidatorValMnemonic), string(mnemonicSet.SignerAddrMnemonic), kiraAddress, mnemonicSet.ValidatorNodeId))
+	mnemonicsData.Set(fmt.Sprintf("MASTER_MNEMONIC=%v\n\nVALIDATOR_ADDR_MNEMONIC=%s\n\nVALIDATOR_NODE_MNEMONIC=%s\n\nVALIDATOR_VAL_MNEMONIC=%s\n\nSIGNER_ADDR_MNEMONIC=%s\n\n\nVALIDATOR_ADDRESS=%s\nVALIDATOR_NODE_ID=%s", mstrMnmc, string(mnemonicSet.ValidatorAddrMnemonic), string(mnemonicSet.ValidatorNodeMnemonic), string(mnemonicSet.ValidatorValMnemonic), string(mnemonicSet.SignerAddrMnemonic), kiraAddress, mnemonicSet.ValidatorNodeId))
 
 	copyButton := widget.NewButtonWithIcon("Copy", theme.FileIcon(), func() {
 		data, _ := mnemonicsData.Get()
