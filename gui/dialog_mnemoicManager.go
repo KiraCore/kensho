@@ -195,15 +195,19 @@ func showMasterMnemonicDetails(g *Gui, mnemonicBinding binding.String) {
 		g.showErrorDialog(err, binding.NewDataListener(func() {}))
 	}
 	mnemonicsData := binding.NewString()
+	addressAndIdData := binding.NewString()
 	kiraAddress, err := mnemonicHelper.GetKiraAddressFromMnemonic(mnemonicSet.ValidatorAddrMnemonic)
 	if err != nil {
 		g.showErrorDialog(err, binding.NewDataListener(func() {}))
 	}
-	mnemonicsData.Set(fmt.Sprintf("MASTER_MNEMONIC=%v\n\nVALIDATOR_ADDR_MNEMONIC=%s\n\nVALIDATOR_NODE_MNEMONIC=%s\n\nVALIDATOR_VAL_MNEMONIC=%s\n\nSIGNER_ADDR_MNEMONIC=%s\n\n\nVALIDATOR_ADDRESS=%s\nVALIDATOR_NODE_ID=%s", mstrMnmc, string(mnemonicSet.ValidatorAddrMnemonic), string(mnemonicSet.ValidatorNodeMnemonic), string(mnemonicSet.ValidatorValMnemonic), string(mnemonicSet.SignerAddrMnemonic), kiraAddress, mnemonicSet.ValidatorNodeId))
+	mnemonicsData.Set(fmt.Sprintf("MASTER_MNEMONIC=%v\n\nVALIDATOR_ADDR_MNEMONIC=%s\n\nVALIDATOR_NODE_MNEMONIC=%s\n\nVALIDATOR_VAL_MNEMONIC=%s\n\nSIGNER_ADDR_MNEMONIC=%s", mstrMnmc, string(mnemonicSet.ValidatorAddrMnemonic), string(mnemonicSet.ValidatorNodeMnemonic), string(mnemonicSet.ValidatorValMnemonic), string(mnemonicSet.SignerAddrMnemonic)))
+
+	addressAndIdData.Set(fmt.Sprintf("VALIDATOR_ADDRESS=%s\nVALIDATOR_NODE_ID=%s", kiraAddress, mnemonicSet.ValidatorNodeId))
 
 	copyButton := widget.NewButtonWithIcon("Copy", theme.FileIcon(), func() {
 		data, _ := mnemonicsData.Get()
-		err = clipboard.WriteAll(data)
+		data2, _ := addressAndIdData.Get()
+		err = clipboard.WriteAll(fmt.Sprintf("%s\n\n%s", data, data2))
 		if err != nil {
 			log.Println(err)
 			return
@@ -211,8 +215,12 @@ func showMasterMnemonicDetails(g *Gui, mnemonicBinding binding.String) {
 	})
 	infoLabel := widget.NewLabelWithData(mnemonicsData)
 	infoLabel.Wrapping = fyne.TextWrapWord
-	infoContent := container.NewVScroll(
-		infoLabel,
+
+	infoLabel2 := widget.NewLabelWithData(addressAndIdData)
+	infoLabel2.Wrapping = fyne.TextWrapWord
+
+	infoContent := container.NewBorder(nil, infoLabel2, nil, nil,
+		container.NewVScroll(infoLabel),
 	)
 
 	content := container.NewBorder(
