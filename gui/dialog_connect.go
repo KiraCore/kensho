@@ -21,12 +21,12 @@ import (
 	"fyne.io/fyne/v2/widget"
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
 	"github.com/KiraCore/kensho/helper/gssh"
+	"github.com/KiraCore/kensho/types"
 	"github.com/fyne-io/terminal"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/ssh"
 )
 
-const service = "Kensho"
 const username = "KenshoEncryptionKey"
 const fallbackKeyFile = "encryption_key.txt"
 
@@ -36,7 +36,7 @@ func (g *Gui) ShowConnect() {
 
 	//join to new host tab
 	join := func() *fyne.Container {
-		encryptionKey, err := getEncryptionKey()
+		encryptionKey, err := getEncryptionKey(g.HomeFolder)
 		if err != nil {
 			fmt.Println("Error getting encryption key:", err)
 			return nil
@@ -362,21 +362,27 @@ func (g *Gui) sshAliveTracker() {
 
 }
 
-func getEncryptionKey() ([]byte, error) {
-	key, err := keyring.Get(service, username)
+func getEncryptionKey(homeDir string) ([]byte, error) {
+	key, err := keyring.Get(types.APP_NAME, username)
 	if err == keyring.ErrNotFound {
 		fmt.Println("Key not found in system keyring. Falling back to file storage.")
-		return getEncryptionKeyFromFile()
+		return getEncryptionKeyFromFile(homeDir)
 	} else if err != nil {
 		fmt.Println("Keyring error. Falling back to file storage.")
-		return getEncryptionKeyFromFile()
+		return getEncryptionKeyFromFile(homeDir)
 	}
 
 	return base64.StdEncoding.DecodeString(key)
 }
 
-func getEncryptionKeyFromFile() ([]byte, error) {
-	keyPath := filepath.Join(os.TempDir(), fallbackKeyFile)
+func getEncryptionKeyFromFile(homeDir string) ([]byte, error) {
+	var keyPath string
+	if homeDir == "" {
+		keyPath = filepath.Join(os.TempDir(), fallbackKeyFile)
+
+	} else {
+		keyPath = filepath.Join(homeDir, fallbackKeyFile)
+	}
 
 	if _, err := os.Stat(keyPath); errors.Is(err, os.ErrNotExist) {
 		newKey := make([]byte, 32)
