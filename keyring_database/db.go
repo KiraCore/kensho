@@ -12,8 +12,8 @@ type IP_DB struct {
 	hostCreds *ipCredentials.CredentialsManager
 }
 
-func NewIPDataBase() (*IP_DB, error) {
-	ipreg, err := hostRegistry.NewIPRegistry("./test")
+func NewIPDataBase(registryPath string) (*IP_DB, error) {
+	ipreg, err := hostRegistry.NewIPRegistry(registryPath)
 	if err != nil {
 		return nil, err
 	}
