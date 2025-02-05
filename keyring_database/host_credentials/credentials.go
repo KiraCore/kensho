@@ -3,6 +3,7 @@ package host_credentials
 import (
 	"encoding/json"
 
+	"github.com/KiraCore/kensho/types"
 	"github.com/zalando/go-keyring"
 )
 
@@ -11,8 +12,6 @@ type Credentials struct {
 	User   string `json:"user"`
 	Secret string `json:"secret"`
 }
-
-const Service string = "kensho"
 
 func NewKeyringManager() *CredentialsManager {
 	return &CredentialsManager{}
@@ -25,7 +24,7 @@ func (CredentialsManager) AddCredentials(id string, credentials Credentials) err
 	if err != nil {
 		return err
 	}
-	err = keyring.Set(Service, id, string(data))
+	err = keyring.Set(types.APP_NAME, id, string(data))
 	if err != nil {
 		return err
 	}
@@ -34,7 +33,7 @@ func (CredentialsManager) AddCredentials(id string, credentials Credentials) err
 }
 
 func (CredentialsManager) RemoveCredentials(id string) error {
-	err := keyring.Delete(Service, id)
+	err := keyring.Delete(types.APP_NAME, id)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (CredentialsManager) RemoveCredentials(id string) error {
 }
 
 func (CredentialsManager) GetCredentials(id string) (*Credentials, error) {
-	out, err := keyring.Get(Service, id)
+	out, err := keyring.Get(types.APP_NAME, id)
 	if err != nil {
 		return nil, err
 	}
