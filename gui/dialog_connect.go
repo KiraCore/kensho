@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +22,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 	dialogWizard "github.com/KiraCore/kensho/gui/dialogs"
 	"github.com/KiraCore/kensho/helper/gssh"
+	ipdatabase "github.com/KiraCore/kensho/keyring_database"
+	"github.com/KiraCore/kensho/keyring_database/host_credentials"
 	"github.com/KiraCore/kensho/types"
 	"github.com/fyne-io/terminal"
 	"github.com/zalando/go-keyring"
@@ -30,24 +33,38 @@ import (
 const username = "KenshoEncryptionKey"
 const fallbackKeyFile = "encryption_key.txt"
 
+type autocompleteFields struct {
+	userEntry     *widget.Entry
+	ipEntry       *widget.Entry
+	portEntry     *widget.Entry
+	passwordEntry *widget.Entry
+	keyEntry      *widget.Entry
+	keyBinding    binding.Bool
+}
+
 func (g *Gui) ShowConnect() {
 
 	var wizard *dialogWizard.Wizard
 
 	//join to new host tab
 	join := func() *fyne.Container {
+		db, err := ipdatabase.NewIPDataBase(filepath.Join(g.HomeFolder, "saved_hosts"))
+		if err != nil {
+			log.Println("error while creating db", err)
+			dialog.ShowError(err, g.Window)
+		}
 		encryptionKey, err := getEncryptionKey(g.HomeFolder)
 		if err != nil {
 			fmt.Println("Error getting encryption key:", err)
 			return nil
 		}
 
-		savedIp := g.Preferences.String("ip")
-		savedPort := g.Preferences.String("port")
-		savedUsername := g.Preferences.String("username")
-		savedPkCheckbox := g.Preferences.Bool("pkc")
-		savedPkPath := g.Preferences.String("pkpath")
-		savedSaveCheckbox := g.Preferences.Bool("svc")
+		// savedIp := g.Preferences.String("ip")
+		// savedPort := g.Preferences.String("port")
+		// savedUsername := g.Preferences.String("username")
+		// savedPkCheckbox := g.Preferences.Bool("pkc")
+		// savedPkPath := g.Preferences.String("pkpath")
+		// savedSaveCheckbox := g.Preferences.Bool("svc")
 
 		encryptedPassword := g.Preferences.String("password")
 
@@ -70,12 +87,12 @@ func (g *Gui) ShowConnect() {
 		var rawKeyState bool
 		var saveState bool
 
-		userEntry.SetText(savedUsername)
-		ipEntry.SetText(savedIp)
-		portEntry.SetText(savedPort)
 		portEntry.PlaceHolder = "22"
-		passwordEntry.SetText(savedPassword)
-		keyPathEntry.SetText(savedPkPath)
+		// userEntry.SetText(savedUsername)
+		// ipEntry.SetText(savedIp)
+		// portEntry.SetText(savedPort)
+		// passwordEntry.SetText(savedPassword)
+		// keyPathEntry.SetText(savedPkPath)
 
 		passphraseEntry.SetText(savedPassword)
 		passphraseEntry.Validator = func(s string) error {
@@ -170,22 +187,33 @@ func (g *Gui) ShowConnect() {
 			container.NewHBox(passphraseCheck, rawKeyCheck),
 		)
 
+		privKeyBinding := binding.NewBool()
 		privKeyCheck := widget.NewCheck("Join with private key", func(b bool) {
-			privKeyState = b
-			if b {
-				keyEntryBox.Objects = []fyne.CanvasObject{privKeyBoxEntry}
-			} else {
-				keyEntryBox.Objects = []fyne.CanvasObject{passwordBoxEntry}
-			}
-		})
+			privKeyBinding.Set(b)
 
-		privKeyCheck.SetChecked(savedPkCheckbox)
+		})
+		keyListener := binding.NewDataListener(
+			func() {
+				fmt.Println("binding")
+				b, _ := privKeyBinding.Get()
+				privKeyState = b
+				privKeyCheck.SetChecked(b)
+				if b {
+					keyEntryBox.Objects = []fyne.CanvasObject{privKeyBoxEntry}
+				} else {
+					keyEntryBox.Objects = []fyne.CanvasObject{passwordBoxEntry}
+				}
+			},
+		)
+		privKeyBinding.AddListener(keyListener)
+
+		// privKeyCheck.SetChecked(savedPkCheckbox)
 
 		saveCheck := widget.NewCheck("Remember credentials", func(b bool) {
 			saveState = b
 		})
 
-		saveCheck.SetChecked(savedSaveCheckbox)
+		// saveCheck.SetChecked(savedSaveCheckbox)
 
 		rawKeyCheck.OnChanged = func(b bool) {
 			rawKeyState = b
@@ -209,25 +237,27 @@ func (g *Gui) ShowConnect() {
 				port = strings.TrimSpace(portEntry.Text)
 			}
 			address := fmt.Sprintf("%v:%v", ip, (port))
+			log.Println("Save state", saveState)
+			log.Println("Priv key state", privKeyState)
+			// if saveState {
+			// 	encryptedPassword, _ := encrypt(passwordEntry.Text, encryptionKey)
+			// 	g.Preferences.SetString("ip", ipEntry.Text)
+			// 	g.Preferences.SetString("port", portEntry.Text)
+			// 	g.Preferences.SetString("username", userEntry.Text)
+			// 	g.Preferences.SetString("password", encryptedPassword)
+			// 	g.Preferences.SetBool("pkc", privKeyState)
+			// 	g.Preferences.SetString("pkpath", keyPathEntry.Text)
+			// 	g.Preferences.SetBool("svc", saveState)
 
-			if saveState {
-				encryptedPassword, _ := encrypt(passwordEntry.Text, encryptionKey)
-				g.Preferences.SetString("ip", ipEntry.Text)
-				g.Preferences.SetString("port", portEntry.Text)
-				g.Preferences.SetString("username", userEntry.Text)
-				g.Preferences.SetString("password", encryptedPassword)
-				g.Preferences.SetBool("pkc", privKeyState)
-				g.Preferences.SetString("pkpath", keyPathEntry.Text)
-				g.Preferences.SetBool("svc", saveState)
-			} else {
-				g.Preferences.SetString("ip", "")
-				g.Preferences.SetString("port", "")
-				g.Preferences.SetString("username", "")
-				g.Preferences.SetString("password", "")
-				g.Preferences.SetBool("pkc", false)
-				g.Preferences.SetString("pkpath", "")
-				g.Preferences.SetBool("svc", saveState)
-			}
+			// } else {
+			// 	g.Preferences.SetString("ip", "")
+			// 	g.Preferences.SetString("port", "")
+			// 	g.Preferences.SetString("username", "")
+			// 	g.Preferences.SetString("password", "")
+			// 	g.Preferences.SetBool("pkc", false)
+			// 	g.Preferences.SetString("pkpath", "")
+			// 	g.Preferences.SetBool("svc", saveState)
+			// }
 
 			if privKeyState {
 				var b []byte
@@ -272,9 +302,15 @@ func (g *Gui) ShowConnect() {
 							return nil, err
 						}
 					}
+					if saveState {
+						db.Add(ipEntry.Text, portEntry.Text, userEntry.Text, keyPathEntry.Text, true)
+					}
 					return c, nil
 				}()
 			} else {
+				if saveState {
+					db.Add(ipEntry.Text, portEntry.Text, userEntry.Text, passwordEntry.Text, false)
+				}
 				g.sshClient, err = gssh.MakeSHH_ClientWithPassword(address, userEntry.Text, passwordEntry.Text)
 			}
 			if err != nil {
@@ -303,12 +339,12 @@ func (g *Gui) ShowConnect() {
 
 		// / test ui block
 		testButton := widget.NewButton("connect to tested env", func() {
-			ipEntry.Text = "192.168.1.101"
-			userEntry.Text = "d"
-			passwordEntry.Text = "d"
-			passphraseCheck.SetChecked(false)
-
-			submitFunc()
+			k, err := keyring.Get("test", "test")
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				fmt.Println(k)
+			}
 		})
 
 		if !g.DeveloperMode {
@@ -323,6 +359,15 @@ func (g *Gui) ShowConnect() {
 		passwordEntry.OnSubmitted = func(s string) { submitFunc() }
 		connectButton := widget.NewButton("Connect to remote host", func() { submitFunc() })
 
+		fields := autocompleteFields{
+			userEntry:     userEntry,
+			ipEntry:       ipEntry,
+			portEntry:     portEntry,
+			passwordEntry: passwordEntry,
+			keyEntry:      keyPathEntry,
+			keyBinding:    privKeyBinding,
+		}
+
 		logging := container.NewBorder(
 			container.NewVBox(
 				widget.NewLabel("IP and Port"),
@@ -334,6 +379,7 @@ func (g *Gui) ShowConnect() {
 				saveCheck,
 				connectButton,
 				testButton,
+				savedCredentialsButton(g, db, fields),
 			),
 			nil, nil, nil,
 			container.NewBorder(nil, nil, nil, nil, container.NewVScroll(errorLabel)),
@@ -404,6 +450,94 @@ func getEncryptionKeyFromFile(homeDir string) ([]byte, error) {
 	}
 
 	return base64.StdEncoding.DecodeString(string(data))
+}
+
+func savedCredentialsButton(g *Gui, db *ipdatabase.IP_DB, fields autocompleteFields) *widget.Button {
+
+	items := db.GetAll()
+	list := &widget.List{
+		Length: func() int {
+			return len(items)
+		},
+		CreateItem: func() fyne.CanvasObject {
+			return container.NewHBox(widget.NewLabel("Template Object"), widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {}))
+		},
+	}
+	list.OnSelected = func(id widget.ListItemID) {
+		creds, err := selectIP(db, items[id])
+		if err != nil {
+			log.Println(err)
+			dialog.ShowError(err, g.Window)
+		} else {
+			autocompleteCredentials(items[id], creds, fields)
+		}
+	}
+	list.UpdateItem = func(id widget.ListItemID, item fyne.CanvasObject) {
+		item.(*fyne.Container).Objects[0].(*widget.Label).SetText(items[id])
+		item.(*fyne.Container).Objects[1].(*widget.Button).OnTapped = func() {
+			deleteIP(db, id, &items)
+			list.Refresh()
+		}
+	}
+
+	popUpContent := container.NewStack(
+		list,
+	)
+
+	popUp := widget.NewPopUp(popUpContent, g.Window.Canvas())
+	popUp.Resize(fyne.NewSize(250, 200))
+	popUp.Hide()
+
+	button := widget.NewButtonWithIcon("", theme.AccountIcon(), func() {})
+	button.OnTapped = func() {
+		g.Window.Content().Position()
+		popUp.Move(fyne.NewPos(fyne.CurrentApp().Driver().AbsolutePositionForObject(button).X, fyne.CurrentApp().Driver().AbsolutePositionForObject(button).Y+button.Size().Height*2))
+		if popUp.Visible() {
+			popUp.Hide()
+		} else {
+			popUp.Show()
+		}
+		fmt.Println()
+	}
+	return button
+}
+
+func selectIP(db *ipdatabase.IP_DB, id string) (*host_credentials.Credentials, error) {
+
+	creds, err := db.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("selecting", id, creds)
+	return creds, nil
+}
+func deleteIP(db *ipdatabase.IP_DB, IPlistID int, list *[]string) error {
+	id := (*list)[IPlistID]
+	fmt.Println("deleting", IPlistID, id)
+	db.Remove(id)
+	*list = append((*list)[:IPlistID], (*list)[IPlistID+1:]...)
+	return nil
+}
+
+func autocompleteCredentials(address string, creds *host_credentials.Credentials, fields autocompleteFields) error {
+	ip, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+
+	fields.ipEntry.SetText(ip)
+	fields.portEntry.SetText(port)
+	fields.userEntry.SetText(creds.User)
+
+	if creds.Key {
+		fields.keyBinding.Set(creds.Key)
+		fields.keyEntry.SetText(creds.Secret)
+	} else {
+		fields.keyBinding.Set(creds.Key)
+		fields.passwordEntry.SetText(creds.Secret)
+	}
+
+	return nil
 }
 
 func decrypt(encryptedText string, key []byte) (string, error) {
