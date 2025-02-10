@@ -367,10 +367,8 @@ func (g *Gui) ShowConnect() {
 			keyEntry:      keyPathEntry,
 			keyBinding:    privKeyBinding,
 		}
-
 		mainLogContent := container.NewVBox(
-			savedCredentialsButton(g, db, fields),
-			widget.NewLabel("IP and Port"),
+			container.NewBorder(nil, nil, savedCredentialsButton(g, db, fields), nil, widget.NewLabel("IP and Port")),
 			addressBoxEntry,
 			widget.NewLabel("User"),
 			userEntry,
@@ -392,7 +390,7 @@ func (g *Gui) ShowConnect() {
 
 	wizard = dialogWizard.NewWizard("Create ssh connection", join())
 	wizard.Show(g.Window)
-	wizard.Resize(fyne.NewSize(350, 600))
+	wizard.Resize(fyne.NewSize(350, 540))
 }
 
 func (g *Gui) sshAliveTracker() {
