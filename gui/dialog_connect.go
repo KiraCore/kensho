@@ -368,28 +368,31 @@ func (g *Gui) ShowConnect() {
 			keyBinding:    privKeyBinding,
 		}
 
+		mainLogContent := container.NewVBox(
+			savedCredentialsButton(g, db, fields),
+			widget.NewLabel("IP and Port"),
+			addressBoxEntry,
+			widget.NewLabel("User"),
+			userEntry,
+			keyEntryBox,
+			privKeyCheck,
+			saveCheck,
+			connectButton,
+			testButton,
+		)
 		logging := container.NewBorder(
-			container.NewVBox(
-				widget.NewLabel("IP and Port"),
-				addressBoxEntry,
-				widget.NewLabel("User"),
-				userEntry,
-				keyEntryBox,
-				privKeyCheck,
-				saveCheck,
-				connectButton,
-				testButton,
-				savedCredentialsButton(g, db, fields),
-			),
-			nil, nil, nil,
-			container.NewBorder(nil, nil, nil, nil, container.NewVScroll(errorLabel)),
+			mainLogContent,
+			nil,
+			nil,
+			nil,
+			container.NewStack(container.NewVScroll(errorLabel)),
 		)
 		return logging
 	}
 
 	wizard = dialogWizard.NewWizard("Create ssh connection", join())
 	wizard.Show(g.Window)
-	wizard.Resize(fyne.NewSize(350, 540))
+	wizard.Resize(fyne.NewSize(350, 600))
 }
 
 func (g *Gui) sshAliveTracker() {
@@ -463,6 +466,12 @@ func savedCredentialsButton(g *Gui, db *ipdatabase.IP_DB, fields autocompleteFie
 			return container.NewHBox(widget.NewLabel("Template Object"), widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {}))
 		},
 	}
+	popUpContent := container.NewStack(
+		list,
+	)
+	popUp := widget.NewPopUp(popUpContent, g.Window.Canvas())
+	popUp.Resize(fyne.NewSize(250, 200))
+	popUp.Hide()
 	list.OnSelected = func(id widget.ListItemID) {
 		creds, err := selectIP(db, items[id])
 		if err != nil {
@@ -471,6 +480,8 @@ func savedCredentialsButton(g *Gui, db *ipdatabase.IP_DB, fields autocompleteFie
 		} else {
 			autocompleteCredentials(items[id], creds, fields)
 		}
+		popUp.Hide()
+
 	}
 	list.UpdateItem = func(id widget.ListItemID, item fyne.CanvasObject) {
 		item.(*fyne.Container).Objects[0].(*widget.Label).SetText(items[id])
@@ -479,14 +490,6 @@ func savedCredentialsButton(g *Gui, db *ipdatabase.IP_DB, fields autocompleteFie
 			list.Refresh()
 		}
 	}
-
-	popUpContent := container.NewStack(
-		list,
-	)
-
-	popUp := widget.NewPopUp(popUpContent, g.Window.Canvas())
-	popUp.Resize(fyne.NewSize(250, 200))
-	popUp.Hide()
 
 	button := widget.NewButtonWithIcon("", theme.AccountIcon(), func() {})
 	button.OnTapped = func() {
