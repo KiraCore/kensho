@@ -1,9 +1,6 @@
 package gui
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -21,14 +18,10 @@ import (
 	"github.com/KiraCore/kensho/helper/gssh"
 	ipdatabase "github.com/KiraCore/kensho/keyring_database"
 	"github.com/KiraCore/kensho/keyring_database/host_credentials"
-	"github.com/KiraCore/kensho/types"
 	"github.com/fyne-io/terminal"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/ssh"
 )
-
-const username = "KenshoEncryptionKey"
-const fallbackKeyFile = "encryption_key.txt"
 
 type autocompleteFields struct {
 	userEntry     *widget.Entry
@@ -404,50 +397,6 @@ func (g *Gui) sshAliveTracker() {
 		g.showErrorDialog(fmt.Errorf("SSH connection was disconnected, reason: %v", err.Error()), errorDoneBinding)
 	}
 
-}
-
-func getEncryptionKey(homeDir string) ([]byte, error) {
-	key, err := keyring.Get(types.APP_NAME, username)
-	if err == keyring.ErrNotFound {
-		fmt.Println("Key not found in system keyring. Falling back to file storage.")
-		return getEncryptionKeyFromFile(homeDir)
-	} else if err != nil {
-		fmt.Println("Keyring error. Falling back to file storage.")
-		return getEncryptionKeyFromFile(homeDir)
-	}
-
-	return base64.StdEncoding.DecodeString(key)
-}
-
-func getEncryptionKeyFromFile(homeDir string) ([]byte, error) {
-	var keyPath string
-	if homeDir == "" {
-		keyPath = filepath.Join(os.TempDir(), fallbackKeyFile)
-
-	} else {
-		keyPath = filepath.Join(homeDir, fallbackKeyFile)
-	}
-
-	if _, err := os.Stat(keyPath); errors.Is(err, os.ErrNotExist) {
-		newKey := make([]byte, 32)
-		_, err := rand.Read(newKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate encryption key: %v", err)
-		}
-
-		encodedKey := base64.StdEncoding.EncodeToString(newKey)
-		if err := os.WriteFile(keyPath, []byte(encodedKey), 0600); err != nil {
-			return nil, fmt.Errorf("failed to write key to file: %v", err)
-		}
-		return newKey, nil
-	}
-
-	data, err := os.ReadFile(keyPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read key from file: %v", err)
-	}
-
-	return base64.StdEncoding.DecodeString(string(data))
 }
 
 func savedCredentialsButton(g *Gui, db *ipdatabase.IP_DB, fields autocompleteFields) *widget.Button {
