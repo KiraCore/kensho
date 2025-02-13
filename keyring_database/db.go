@@ -1,6 +1,7 @@
 package ipdatabase
 
 import (
+	"log"
 	"net"
 
 	ipCredentials "github.com/KiraCore/kensho/keyring_database/host_credentials"
@@ -28,6 +29,7 @@ func NewIPDataBase(registryPath string) (*IP_DB, error) {
 // secret - password/key path
 // key - if secret is a key or path
 func (db IP_DB) Add(ip, port, user, secret string, key bool) error {
+	log.Printf("Adding credentials id: <%v>", ip)
 	id := net.JoinHostPort(ip, port)
 	err := db.hostCreds.AddCredentials(id, ipCredentials.Credentials{
 		Key:    key,
@@ -35,8 +37,10 @@ func (db IP_DB) Add(ip, port, user, secret string, key bool) error {
 		Secret: secret,
 	})
 	if err != nil {
+		log.Println("error while adding creds to keyring", err)
 		return err
 	}
+
 	err = db.hostReg.AddIP(id)
 	if err != nil {
 		return err
@@ -45,6 +49,7 @@ func (db IP_DB) Add(ip, port, user, secret string, key bool) error {
 }
 
 func (db IP_DB) Remove(id string) error {
+	log.Printf("Removing credentials id: <%v>", id)
 	err := db.hostReg.DeleteIP(id)
 	if err != nil {
 		return err
@@ -58,6 +63,7 @@ func (db IP_DB) Remove(id string) error {
 }
 
 func (db IP_DB) Get(id string) (*ipCredentials.Credentials, error) {
+	log.Printf("Getting credentials id: <%v>", id)
 	creds, err := db.hostCreds.GetCredentials(id)
 	if err != nil {
 		return nil, err
