@@ -1,13 +1,10 @@
 package gui
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -53,11 +50,11 @@ func (g *Gui) ShowConnect() {
 			log.Println("error while creating db", err)
 			dialog.ShowError(err, g.Window)
 		}
-		encryptionKey, err := getEncryptionKey(g.HomeFolder)
-		if err != nil {
-			fmt.Println("Error getting encryption key:", err)
-			return nil
-		}
+		// encryptionKey, err := getEncryptionKey(g.HomeFolder)
+		// if err != nil {
+		// 	fmt.Println("Error getting encryption key:", err)
+		// 	return nil
+		// }
 
 		// savedIp := g.Preferences.String("ip")
 		// savedPort := g.Preferences.String("port")
@@ -66,12 +63,12 @@ func (g *Gui) ShowConnect() {
 		// savedPkPath := g.Preferences.String("pkpath")
 		// savedSaveCheckbox := g.Preferences.Bool("svc")
 
-		encryptedPassword := g.Preferences.String("password")
+		// encryptedPassword := g.Preferences.String("password")
 
-		var savedPassword string
-		if encryptedPassword != "" {
-			savedPassword, _ = decrypt(encryptedPassword, encryptionKey)
-		}
+		// var savedPassword string
+		// if encryptedPassword != "" {
+		// 	savedPassword, _ = decrypt(encryptedPassword, encryptionKey)
+		// }
 
 		userEntry := widget.NewEntry()
 		ipEntry := widget.NewEntry()
@@ -94,7 +91,7 @@ func (g *Gui) ShowConnect() {
 		// passwordEntry.SetText(savedPassword)
 		// keyPathEntry.SetText(savedPkPath)
 
-		passphraseEntry.SetText(savedPassword)
+		// passphraseEntry.SetText(savedPassword)
 		passphraseEntry.Validator = func(s string) error {
 			if s == "" {
 				return fmt.Errorf("enter your passphrase")
@@ -539,39 +536,4 @@ func autocompleteCredentials(address string, creds *host_credentials.Credentials
 	}
 
 	return nil
-}
-
-func decrypt(encryptedText string, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	ciphertext, err := base64.StdEncoding.DecodeString(encryptedText)
-	if err != nil {
-		return "", err
-	}
-	if len(ciphertext) < aes.BlockSize {
-		return "", errors.New("ciphertext too short")
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(ciphertext, ciphertext)
-	return string(ciphertext), nil
-}
-
-func encrypt(text string, key []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	plaintext := []byte(text)
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
