@@ -26,7 +26,7 @@ func (CredentialsManager) AddCredentials(id string, credentials Credentials) err
 	if err != nil {
 		return err
 	}
-	encryptedData, err := encryption.Encrypt(string(data), []byte("password"))
+	encryptedData, err := encryption.Encrypt(string(data), types.APP_NAME)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (CredentialsManager) GetCredentials(id string) (*Credentials, error) {
 	if err != nil {
 		return nil, err
 	}
-	decryptedData, err := encryption.Decrypt(encryptedData, []byte("password"))
+	decryptedData, err := encryption.Decrypt(encryptedData, types.APP_NAME)
 	if err != nil {
 		return nil, err
 	}
