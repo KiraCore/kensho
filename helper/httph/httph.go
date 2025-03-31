@@ -274,3 +274,85 @@ func GetDashboardInfo(sshClient *ssh.Client, shidaiPort int) (*Dashboard, error)
 	}
 	return data, nil
 }
+
+type ConfigRequest struct {
+	Type     string `json:"type"`
+	TomlData string `json:"toml_data"`
+}
+
+const (
+	configTomlType = "config_toml"
+	appTomlType    = "app_toml"
+)
+
+// returns app.toml as string from remote host
+func GetAppTomlConfig(sshClient *ssh.Client, shidaiPort int) (string, error) {
+	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
+	payload := ConfigRequest{
+		Type: appTomlType,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := ExecHttpRequestBySSHTunnel(sshClient, url, http.MethodPost, payloadBytes)
+	if err != nil {
+		return "", fmt.Errorf("error when getting toml config from remote\nOut: %v\nerr: %w", string(out), err)
+	}
+	return string(out), nil
+}
+
+// returns config.toml as string from remote host
+func GetConfigTomlConfig(sshClient *ssh.Client, shidaiPort int) (string, error) {
+	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
+	payload := ConfigRequest{
+		Type: configTomlType,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := ExecHttpRequestBySSHTunnel(sshClient, url, http.MethodPost, payloadBytes)
+	if err != nil {
+		return "", fmt.Errorf("error when getting toml config from remote\nOut: %v\nerr: %w", string(out), err)
+	}
+	return string(out), nil
+}
+
+// put
+func SetConfigTomlConfig(sshClient *ssh.Client, config string, shidaiPort int) error {
+	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
+	payload := ConfigRequest{
+		Type:     configTomlType,
+		TomlData: config,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	out, err := ExecHttpRequestBySSHTunnel(sshClient, url, http.MethodPut, payloadBytes)
+	if err != nil {
+		return fmt.Errorf("error when setting config.toml from remote\nOut: %v\nerr: %w", string(out), err)
+	}
+	return nil
+}
+func SetAppTomlConfig(sshClient *ssh.Client, config string, shidaiPort int) error {
+	url := fmt.Sprintf("http://localhost:%v/config", shidaiPort)
+	payload := ConfigRequest{
+		Type:     appTomlType,
+		TomlData: config,
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	out, err := ExecHttpRequestBySSHTunnel(sshClient, url, http.MethodPut, payloadBytes)
+	if err != nil {
+		return fmt.Errorf("error when setting config.toml from remote\nOut: %v\nerr: %w", string(out), err)
+	}
+	return nil
+}

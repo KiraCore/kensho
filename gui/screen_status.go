@@ -93,6 +93,7 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		}
 	}
 	startButton := widget.NewButton("Start", func() {})
+	stopButton := widget.NewButton("Stop", func() {})
 	refresh := func() {
 		g.WaitDialog.ShowWaitDialog()
 		checkInterxStatus()
@@ -108,7 +109,6 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		log.Printf("CHECKS: shidaiCheck:%v sekaiCheck:%v interxCheck:%v shidaiInfra:%v sekaiInfra:%v interxInfra:%v",
 			shidaiCheck, sekaiCheck, interxCheck, shidaiInfra, sekaiInfra, interxInfra)
 
-		// TODO: first maybe we should try to restart first if shidai is not running
 		var deployButtonCheck bool
 
 		if !shidaiCheck {
@@ -117,25 +117,57 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		} else {
 			deployButtonCheck = false
 		}
+
+		log.Println("enable state: ", deployButtonCheck)
 		if !deployButtonCheck {
 			if shidaiInfra && sekaiInfra && interxInfra && (shidaiCheck && !sekaiCheck && !interxCheck) {
 				startButton.Enable()
+				stopButton.Disable()
 				log.Println("start button enabled")
+			} else if shidaiInfra && sekaiInfra && interxInfra && (shidaiCheck && sekaiCheck && interxCheck) {
+				stopButton.Enable()
+				startButton.Disable()
+				log.Println("stop button enabled")
 			} else {
 				startButton.Disable()
+				stopButton.Disable()
 				log.Println("start button disabled")
 			}
-		}
-
-		log.Println("enable state: ", deployButtonCheck)
-		if deployButtonCheck {
-			deployButton.Enable()
 		} else {
-			deployButton.Disable()
+			deployButton.Enable()
 		}
 
 		defer g.WaitDialog.HideWaitDialog()
 	}
+
+	//stop button logic
+	stopButton.OnTapped = func() {
+		g.WaitDialog.ShowWaitDialog()
+		var payloadStruct = types.RequestDeployPayload{
+			Command: "stop",
+		}
+		payload, err := json.Marshal(payloadStruct)
+		if err != nil {
+			log.Println("ERROR when executing payload:", err.Error())
+			g.WaitDialog.HideWaitDialog()
+			g.showErrorDialog(err, binding.NewDataListener(func() {}))
+
+			return
+		}
+		out, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
+		if err != nil {
+			log.Println("ERROR when executing payload:", err.Error())
+			g.WaitDialog.HideWaitDialog()
+			g.showErrorDialog(err, binding.NewDataListener(func() {}))
+			return
+		}
+		log.Println("START out:", string(out))
+		g.WaitDialog.HideWaitDialog()
+		refresh()
+	}
+	stopButton.Disable()
+
+	//start button
 	startButton.OnTapped = func() {
 		g.WaitDialog.ShowWaitDialog()
 		var payloadStruct = types.RequestDeployPayload{
@@ -144,12 +176,14 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 		payload, err := json.Marshal(payloadStruct)
 		if err != nil {
 			log.Println("ERROR when executing payload:", err.Error())
+			g.WaitDialog.HideWaitDialog()
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
 		out, err := httph.ExecHttpRequestBySSHTunnel(g.sshClient, types.SEKIN_EXECUTE_ENDPOINT, "POST", payload)
 		if err != nil {
 			log.Println("ERROR when executing payload:", err.Error())
+			g.WaitDialog.HideWaitDialog()
 			g.showErrorDialog(err, binding.NewDataListener(func() {}))
 			return
 		}
@@ -171,6 +205,7 @@ func makeStatusScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 	defer refresh()
 	return container.NewBorder(nil,
 		container.NewVBox(startButton,
+			stopButton,
 			deployButton,
 			widget.NewSeparator(),
 			refreshButton), nil, nil,
