@@ -1,5 +1,23 @@
 # KENSHO
 
+### Building
+1. **via Dockerfile**:
+   ```
+   docker build -t kensho-builder . &&  docker run --rm -v ./tmp/:/output kensho-builder
+   ```
+
+2. **build natively**
+   ```
+   go build main.go
+   ```
+
+3. **with fyne-cross**
+   ```
+   fyne-cross linux
+   ```
+
+[For more information how to build with fyne-cross check official documentation](https://docs.fyne.io/started/cross-compiling.html)
+
 ### Preparing Your Pull Request
 
 1. **Fork and Clone**: First, fork the main repository and clone it locally.
