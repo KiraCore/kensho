@@ -28,13 +28,13 @@ type BlacklistedNode struct {
 	Error []error
 }
 
-// get nodes that are available by 11000 port
-func GetAllNodesV3(ctx context.Context, firstNode string, depth int, ignoreDepth bool) (map[string]Node, map[string]BlacklistedNode, error) {
+// get nodes that are available by the specified port
+func GetAllNodesV3(ctx context.Context, firstNode string, port int, depth int, ignoreDepth bool) (map[string]Node, map[string]BlacklistedNode, error) {
 	nodesPool := make(map[string]Node)
 	blacklist := make(map[string]BlacklistedNode)
 	processed := make(map[string]string)
 	client := http.DefaultClient
-	node, err := GetNetInfoFromInterx(ctx, client, firstNode)
+	node, err := GetNetInfoFromInterx(ctx, client, firstNode, port)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,7 +42,7 @@ func GetAllNodesV3(ctx context.Context, firstNode string, depth int, ignoreDepth
 	var wg sync.WaitGroup
 	for _, n := range node.Peers {
 		wg.Add(1)
-		go loopFunc(ctx, &wg, client, nodesPool, blacklist, processed, n.RemoteIP, 0, depth, ignoreDepth)
+		go loopFunc(ctx, &wg, client, nodesPool, blacklist, processed, n.RemoteIP, port, 0, depth, ignoreDepth)
 	}
 
 	wg.Wait()
@@ -53,7 +53,7 @@ func GetAllNodesV3(ctx context.Context, firstNode string, depth int, ignoreDepth
 	return nodesPool, blacklist, nil
 }
 
-func loopFunc(ctx context.Context, wg *sync.WaitGroup, client *http.Client, pool map[string]Node, blacklist map[string]BlacklistedNode, processed map[string]string, ip string, currentDepth, totalDepth int, ignoreDepth bool) {
+func loopFunc(ctx context.Context, wg *sync.WaitGroup, client *http.Client, pool map[string]Node, blacklist map[string]BlacklistedNode, processed map[string]string, ip string, port int, currentDepth, totalDepth int, ignoreDepth bool) {
 
 	defer wg.Done()
 	if !ignoreDepth {
@@ -97,11 +97,11 @@ func loopFunc(ctx context.Context, wg *sync.WaitGroup, client *http.Client, pool
 	localWaitGroup.Add(2)
 	go func() {
 		defer localWaitGroup.Done()
-		nodeInfo, errNetInfo = GetNetInfoFromInterx(ctx, client, ip)
+		nodeInfo, errNetInfo = GetNetInfoFromInterx(ctx, client, ip, port)
 	}()
 	go func() {
 		defer localWaitGroup.Done()
-		status, errStatus = GetStatusFromInterx(ctx, client, ip)
+		status, errStatus = GetStatusFromInterx(ctx, client, ip, port)
 	}()
 	localWaitGroup.Wait()
 	// nodeInfo, errNetInfo = GetNetInfoFromInterx(ctx, client, ip)
@@ -141,7 +141,7 @@ func loopFunc(ctx context.Context, wg *sync.WaitGroup, client *http.Client, pool
 
 	for _, p := range nodeInfo.Peers {
 		wg.Add(1)
-		go loopFunc(ctx, wg, client, pool, blacklist, processed, p.RemoteIP, currentDepth, totalDepth, ignoreDepth)
+		go loopFunc(ctx, wg, client, pool, blacklist, processed, p.RemoteIP, port, currentDepth, totalDepth, ignoreDepth)
 
 		listenAddr, _, err := extractIP(p.NodeInfo.ListenAddr)
 		if err != nil {
@@ -150,7 +150,7 @@ func loopFunc(ctx context.Context, wg *sync.WaitGroup, client *http.Client, pool
 			if listenAddr != p.RemoteIP {
 				log.Printf("listen addr (%v) and remoteIp (%v) are not the same, creating new goroutine for listen addr", listenAddr, p.RemoteIP)
 				wg.Add(1)
-				go loopFunc(ctx, wg, client, pool, blacklist, processed, listenAddr, currentDepth, totalDepth, ignoreDepth)
+				go loopFunc(ctx, wg, client, pool, blacklist, processed, listenAddr, port, currentDepth, totalDepth, ignoreDepth)
 			}
 		}
 
@@ -164,12 +164,12 @@ func cleanValue(toClean map[string]string, key string) {
 
 const TimeOutDelay time.Duration = time.Second * 5
 
-func GetNetInfoFromInterx(ctx context.Context, client *http.Client, ip string) (*interxendpoint.NetInfo, error) {
+func GetNetInfoFromInterx(ctx context.Context, client *http.Client, ip string, port int) (*interxendpoint.NetInfo, error) {
 
 	ctxWithTO, c := context.WithTimeout(ctx, TimeOutDelay)
 	defer c()
 	// log.Printf("Getting net_info from: %v", ip)
-	url := fmt.Sprintf("http://%v:11000/api/net_info", ip)
+	url := fmt.Sprintf("http://%v:%d/api/net_info", ip, port)
 	req, err := http.NewRequestWithContext(ctxWithTO, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -194,11 +194,11 @@ func GetNetInfoFromInterx(ctx context.Context, client *http.Client, ip string) (
 	return &nodeInfo, nil
 }
 
-func GetStatusFromInterx(ctx context.Context, client *http.Client, ip string) (*interxendpoint.Status, error) {
+func GetStatusFromInterx(ctx context.Context, client *http.Client, ip string, port int) (*interxendpoint.Status, error) {
 	ctxWithTO, c := context.WithTimeout(ctx, TimeOutDelay)
 	defer c()
 	// log.Printf("Getting net_info from: %v", ip)
-	url := fmt.Sprintf("http://%v:11000/api/status", ip)
+	url := fmt.Sprintf("http://%v:%d/api/status", ip, port)
 	req, err := http.NewRequestWithContext(ctxWithTO, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

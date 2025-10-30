@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/KiraCore/kensho/helper/networkparser"
+	"github.com/KiraCore/kensho/types"
 	"github.com/atotto/clipboard"
 )
 
@@ -67,10 +68,10 @@ func makeNetworkTreeScreen(_ fyne.Window, g *Gui) fyne.CanvasObject {
 	})
 	refreshButton := widget.NewButton("Refresh", func() {
 		g.WaitDialog.ShowWaitDialog()
-		nodes, _, err = networkparser.GetAllNodesV3(context.Background(), g.Host.IP, 3, false)
+		nodes, _, err = networkparser.GetAllNodesV3(context.Background(), g.Host.IP, types.DEFAULT_INTERX_PORT, 3, false)
 
 		// TODO: for testing
-		// nodes, _, err = networkparser.GetAllNodesV3(context.Background(), "148.251.69.56", 4, false)
+		// nodes, _, err = networkparser.GetAllNodesV3(context.Background(), "148.251.69.56", types.DEFAULT_INTERX_PORT, 4, false)
 		//
 		if err != nil {
 			log.Println(err)
