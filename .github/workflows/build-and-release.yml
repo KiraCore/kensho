@@ -6,6 +6,7 @@ on:
     types: [closed]
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   check_pr_merged:
